@@ -19,7 +19,7 @@
     
     d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('basic'));
 
-    d3.select('#elm').datum([ 0, 1 ]).call(d3_rs_lines.html('basic-legend').legend([ 'A', 'B' ]));
+    d3.select('#elm').datum([ 0, 1 ]).call(d3_rs_lines.html('basic-legend').legend([ 'A', 'B' ]).symbol('symbolDiamond'));
 
     var TIMES = [
       {
@@ -443,8 +443,13 @@
         ]
       }
     ];
-
-    d3.select('#elm').datum(TIMES).call(d3_rs_lines.html('basic-time').labelTime('%b-%d'));
+    
+    /*
+    console.log(TIMES.map((d, i) => d.l = i));
+    
+    console.log(encodeURIComponent(JSON.stringify(TIMES)));
+    */
+    d3.select('#elm').datum(TIMES).call(d3_rs_lines.html('basic-time').labelTime('%b-%d').symbol('symbolCross'));
 
 
     </script>

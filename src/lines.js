@@ -1,12 +1,33 @@
 
 import { select } from 'd3-selection';
-import { line, area, curveCatmullRom } from 'd3-shape';
+import { line, area, symbol } from 'd3-shape';
 import { max, min } from 'd3-array';
 import { scaleLinear, scaleLog, scaleTime } from 'd3-scale';
 import { axisBottom, axisLeft } from 'd3-axis';
 import { timeFormat, timeFormatDefaultLocale } from 'd3-time-format';
 import { format, formatDefaultLocale } from 'd3-format';
+
 import * as times from 'd3-time';
+import { 
+  curveBasis,
+  curveBundle,
+  curveCardinal,
+  curveCatmullRom,
+  curveMonotoneX,
+  curveMonotoneY,
+  curveNatural,
+  curveStep,
+  curveStepAfter,
+  curveStepBefore,
+  symbolCircle,
+  symbolCross,
+  symbolDiamond,
+  symbolSquare,
+  symbolStar,
+  symbolTriangle,
+  symbolWye
+} from 'd3-shape';
+
 
 import { html as svg } from '@redsift/d3-rs-svg';
 import { units, time } from "@redsift/d3-rs-intl";
@@ -17,6 +38,30 @@ import {
   display as display
 } from '@redsift/d3-rs-theme';
 
+const curves = {
+  curveBasis: curveBasis,
+//curveBundle: curveBundle, -- does not support area
+  curveCardinal: curveCardinal,
+  curveCatmullRom: curveCatmullRom,
+  curveMonotoneX: curveMonotoneX,
+  curveMonotoneY: curveMonotoneY,
+  curveNatural: curveNatural, 
+  curveStep: curveStep,
+  curveStepAfter: curveStepAfter,
+  curveStepBefore: curveStepBefore
+};
+
+const symbols = {
+  symbolCircle: symbolCircle,
+  symbolCross: symbolCross,
+  symbolDiamond: symbolDiamond,
+  symbolSquare: symbolSquare,
+  symbolStar: symbolStar,
+  symbolTriangle: symbolTriangle,
+  symbolWye: symbolWye  
+}
+
+
 const DEFAULT_SIZE = 420;
 const DEFAULT_ASPECT = 160 / 420;
 const DEFAULT_MARGIN = 40;  // white space
@@ -25,6 +70,7 @@ const DEFAULT_TICK_FORMAT_VALUE = ',.0f';
 const DEFAULT_TICK_FORMAT_VALUE_SI = '.2s';
 const DEFAULT_TICK_FORMAT_VALUE_SMALL = '.3f';
 const DEFAULT_TICK_COUNT = 4;
+const DEFAULT_SYMBOL_SIZE = 32;
 const DEFAULT_SCALE = 42; // why not
 const DEFAULT_LEGEND_SIZE = 10;
 const DEFAULT_LEGEND_PADDING_X = 8;
@@ -32,7 +78,16 @@ const DEFAULT_LEGEND_PADDING_Y = 24;
 const DEFAULT_LEGEND_TEXT_SCALE = 8; // hack value to do fast estimation of length of string
 const DEFAULT_HIGHLIGHT_TEXT_PADDING = 2;
 // Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
-const DEFAULT_STYLE = "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300); text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; } .axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; } .lines path { fill: none } line { stroke-width: 1.5px } line.grid { stroke-width: 1.0px } .legend text { font-size: 12px } .highlight { opacity: 0.66 } .highlight text { font-size: 12px } ";
+const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300);",
+                        "text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
+                        ".axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; }",
+                        "line { stroke-width: 1.5px }",
+                        "line.grid { stroke-width: 1.0px }",
+                        ".legend text { font-size: 12px }",
+                        "path.area { opacity: 0.33 }",
+                        ".highlight { opacity: 0.66 }",
+                        ".highlight text { font-size: 12px }"
+                      ].join(' \n');
 
 export default function lines(id) {
   let classed = 'chart-lines', 
@@ -62,6 +117,9 @@ export default function lines(id) {
       legend = [ ],
       fill = null,
       labelTime = null,
+      curve = curveCatmullRom.alpha(0),
+      psymbol = null,
+      symbolSize = DEFAULT_SYMBOL_SIZE,
       highlight = [ ],
       displayTip = -1,
       value = function (d, i) {
@@ -94,15 +152,21 @@ export default function lines(id) {
     return d;
   }
   
-  function _mapTickCount(t) {
-    if (t == null) return null;
-    // TODO: does not seem to behave
-    if (typeof t === 'string') {
-      return times[t];
+  function _map(map) {
+    return function (c) {
+      if (c == null) return null;
+      // TODO: does not seem to behave
+      if (typeof c === 'string') {
+        return map[c];
+      }
+      return c;
     }
-    return t;
   }
   
+  let _mapCurve = _map(curves);
+  let _mapSymbols = _map(symbols);
+  let _mapTickCount = _map(times);
+ 
   function _makeFillFn() {
     let colors = () => fill;
     if (fill == null) {
@@ -228,7 +292,7 @@ export default function lines(id) {
         lg.exit().remove();
         let newlg = lg.enter().append('g');
         
-        let colors = () => 'red';
+        let colors = _makeFillFn();
 
         newlg.append('rect')
               .attr('width', DEFAULT_LEGEND_SIZE)
@@ -296,14 +360,53 @@ export default function lines(id) {
           
       let lines = line()
         .x(d => scaleI(d[0]))
-        .y(d => scaleV(d[1]))
-        .curve(curveCatmullRom.alpha(0));  
+        .y(d => scaleV(d[1]));
+      
+      let areas = area()
+          .x(d => scaleI(d[0]))
+          .y0(h)
+          .y1(d => scaleV(d[1]));      
+      
+      let cv = _mapCurve(curve);
+      if (cv != null) {  
+        lines.curve(cv);  
+        areas.curve(cv);
+      }
       
       let colors = _makeFillFn();
+   
+      let sym = null;
+      let stype = _mapSymbols(psymbol);
+      if (stype != null) {
+        sym = symbol().type(stype).size(symbolSize);
+      }
+         
       g.select('g.lines')
         .append('path')
+        .attr('class', 'area')
+        .attr('d', areas)
+        .attr('stroke', 'none')
+        .attr('fill', colors);   
+
+      g.select('g.lines')
+        .append('path')
+        .attr('class', 'stroke')
         .attr('d', lines)
+        .attr('fill', 'none')
         .attr('stroke', colors);     
+
+      let eSym = g.select('g.lines')
+        .selectAll('path.symbol')
+        .data(d => d);
+      
+      eSym.exit().remove();
+      eSym = eSym.enter().append('path').attr('class', 'symbol').merge(eSym);
+        
+      eSym.attr('transform', d => 'translate('+scaleI(d[0])+','+scaleV(d[1])+')')
+        .attr('d', sym)
+        .attr('fill', colors)
+        .attr('stroke', 'none');  
+        
     });
     
   }
@@ -433,6 +536,18 @@ export default function lines(id) {
   _impl.niceIndex = function(value) {
     return arguments.length ? (niceIndex = value, _impl) : niceIndex;
   }; 
+
+  _impl.curve = function(value) {
+    return arguments.length ? (curve = value, _impl) : curve;
+  }; 
+  
+  _impl.symbol = function(value) {
+    return arguments.length ? (psymbol = value, _impl) : psymbol;
+  };   
+
+  _impl.symbolSize = function(value) {
+    return arguments.length ? (symbolSize = value, _impl) : symbolSize;
+  };    
   
   _impl.fill = function(value) {
     return arguments.length ? (fill = value, _impl) : fill;

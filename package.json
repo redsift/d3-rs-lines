@@ -35,7 +35,7 @@
     "d3-scale": "^0.9.2",
     "d3-axis": "^0.4.1",
     "d3-format": "git://github.com/d3/d3-format",
-    "d3-time-format": "^1.1.0",
+    "d3-time-format": "git://github.com/d3/d3-time-format",
     "d3-time": "^1.0.0",
     "@redsift/d3-rs-svg": "~0.2.3",
     "@redsift/d3-rs-theme": "~0.0.2",
