@@ -118,7 +118,7 @@ export default function lines(id) {
       fill = null,
       labelTime = null,
       curve = curveCatmullRom.alpha(0),
-      psymbol = null,
+      psymbol = [ ],
       symbolSize = DEFAULT_SYMBOL_SIZE,
       highlight = [ ],
       displayTip = -1,
@@ -131,13 +131,28 @@ export default function lines(id) {
           d = d.v;
         }
 
-        return [ i, d ];
+        return [ i, Array.isArray(d) ? d : [ d ] ];
       };
 
   // [ [ [i1,v1], [i1,v1] ], [ [i2,v2] ... ], ... ]
   function _flatArrays(a) {
-      // TODO: Series support
-      return a.map(d => [ d[0], Array.isArray(d[1]) ? d[1][0] : d[1] ])
+      let maxD = max(a, d => d[1].length);
+      let result = [];
+      
+      for (let i=0; i<maxD; ++i) {
+        let v = a.map(function (d) {
+          if (i === 0) {
+            return [ d[0], Array.isArray(d[1]) ? d[1][i] : d[1] ]
+          }
+          
+          if (Array.isArray(d[1]) && d[1].length > i) return [ d[0], d[1][i] ]
+          
+          return null;
+        });
+        result.push(v.filter(d => d !== null)); 
+      }      
+      
+      return result;
   }
     
   function _coerceArray(d) {
@@ -170,12 +185,12 @@ export default function lines(id) {
   function _makeFillFn() {
     let colors = () => fill;
     if (fill == null) {
-      colors = () => presentation10.standard[0];
+      let c = presentation10.standard;
+      colors = (d, i) => (c[i % c.length]);
     } else if (typeof fill === 'function') {
       colors = fill;
     } else if (Array.isArray(fill)) {
-      let count = -1;
-      colors = () => (count++, fill[ count % fill.length ])
+      colors = (d, i) => fill[ i % fill.length ];
     }
     return colors;  
   }  
@@ -185,16 +200,13 @@ export default function lines(id) {
         transition = (context.selection !== undefined);
    
     formatDefaultLocale(units(language).d3);
+    if (labelTime != null) {
+      timeFormatDefaultLocale(time(language).d3);
+    }
 
     let defaultValueFormat = format(DEFAULT_TICK_FORMAT_VALUE);
     let defaultValueFormatSi = format(DEFAULT_TICK_FORMAT_VALUE_SI);
     let defaultValueFormatSmall = format(DEFAULT_TICK_FORMAT_VALUE_SMALL);    
-
-    let formatTime = null;
-    if (labelTime != null) {
-      timeFormatDefaultLocale(time(language).d3);
-      formatTime = timeFormat(labelTime);
-    }
       
     let scaleFn = tickDisplayValue;
     if (scaleFn == null && logValue === 0) {
@@ -248,19 +260,18 @@ export default function lines(id) {
         g.append('g').attr('class', 'axis-i axis');
         g.append('g').attr('class', 'legend');
         g.append('g').attr('class', 'lines');
+        g.append('g').attr('class', 'symbols');
       }
 
       let data = g.datum() || [];
       
       let vdata = _flatArrays(data.map((d, i) => value(d, i)));
       
-      console.log(vdata);
-      
       g.datum(vdata); // this rebind is required even though there is a following select
 
       let minV = minValue;
       if (minV == null) {
-        minV = min(vdata, (d) => d[1]);
+        minV = min(vdata, d => min(d, d1 => d1[1]));
         if (minV > 0) {
           minV = logValue === 0 ? 0 : 1;
         }
@@ -268,19 +279,19 @@ export default function lines(id) {
             
       let maxV = maxValue;
       if (maxV == null) {
-        maxV = max(vdata, d => d[1]);
+        maxV = max(vdata, d => max(d, d1 => d1[1]));
       }
       
       let minI = minIndex;
       if (minI == null) {
-        minI = min(vdata, (d) => d[0]);
+        minI = min(vdata, d => min(d, d1 => d1[0]));
       }
       
       let maxI = maxIndex;
       if (maxI == null) {
-        maxI = max(vdata, (d) => d[0]);
+        maxI = max(vdata, d => max(d, d1 => d1[0]));
       }
-                        
+                       
       let w = root.childWidth(),
           h = root.childHeight();
       
@@ -375,38 +386,43 @@ export default function lines(id) {
       
       let colors = _makeFillFn();
    
-      let sym = null;
-      let stype = _mapSymbols(psymbol);
-      if (stype != null) {
-        sym = symbol().type(stype).size(symbolSize);
-      }
-         
-      g.select('g.lines')
-        .append('path')
-        .attr('class', 'area')
-        .attr('d', areas)
-        .attr('stroke', 'none')
-        .attr('fill', colors);   
+      let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
+      let noop = () => '';
+      let sym = vdata.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : noop);
+            
+      let elmL = g.select('g.lines');
 
-      g.select('g.lines')
-        .append('path')
-        .attr('class', 'stroke')
-        .attr('d', lines)
-        .attr('fill', 'none')
-        .attr('stroke', colors);     
+      let elmArea = elmL.selectAll('path.area').data(vdata);
+      elmArea.exit().remove();
+      elmArea = elmArea.enter()
+                        .append('path')
+                        .attr('class', 'area').attr('stroke', 'none').merge(elmArea);
+      elmArea.attr('d', areas)
+              .attr('fill', colors);   
 
-      let eSym = g.select('g.lines')
-        .selectAll('path.symbol')
-        .data(d => d);
-      
+      let elmStroke = elmL.selectAll('path.stroke').data(vdata);
+      elmStroke.exit().remove();
+      elmStroke = elmStroke.enter()
+                            .append('path')
+                            .attr('class', 'stroke')
+                            .attr('fill', 'none');
+      elmStroke.attr('d', lines)
+                .attr('stroke', colors);     
+
+      let eSym = g.select('g.symbols')
+                    .selectAll('g.symbol')
+                    .data(vdata);
       eSym.exit().remove();
-      eSym = eSym.enter().append('path').attr('class', 'symbol').merge(eSym);
-        
-      eSym.attr('transform', d => 'translate('+scaleI(d[0])+','+scaleV(d[1])+')')
-        .attr('d', sym)
-        .attr('fill', colors)
+      eSym = eSym.enter().append('g').attr('class', 'symbol').merge(eSym);
+
+      let eS = eSym.selectAll('path').data((d, i) => d.map(function (v) { return { v : v, i : i }; }));
+      eS.exit().remove();
+      eS = eS.enter().append('path').merge(eS);
+      eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+scaleV(d.v[1])+')')
+        .attr('d', (d) => sym[d.i](d.v, d.i))
+        .attr('fill', d => colors(d.v, d.i))
         .attr('stroke', 'none');  
-        
+
     });
     
   }
@@ -542,7 +558,7 @@ export default function lines(id) {
   }; 
   
   _impl.symbol = function(value) {
-    return arguments.length ? (psymbol = value, _impl) : psymbol;
+    return arguments.length ? (psymbol = _coerceArray(value), _impl) : psymbol;
   };   
 
   _impl.symbolSize = function(value) {

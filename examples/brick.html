@@ -449,7 +449,9 @@
     
     console.log(encodeURIComponent(JSON.stringify(TIMES)));
     */
-    d3.select('#elm').datum(TIMES).call(d3_rs_lines.html('basic-time').labelTime('%b-%d').symbol('symbolCross'));
+    // [ 'symbolCross', 'symbolStar' ]
+    // 
+    d3.select('#elm').datum(TIMES).call(d3_rs_lines.html('basic-time').labelTime('%d-%b').curve('').symbol([ null, 'symbolStar' ]).scale(2).language('ru'));
 
 
     </script>
