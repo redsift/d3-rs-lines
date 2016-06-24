@@ -7,7 +7,39 @@ import { axisBottom, axisLeft } from 'd3-axis';
 import { timeFormat, timeFormatDefaultLocale } from 'd3-time-format';
 import { format, formatDefaultLocale } from 'd3-format';
 
-import * as times from 'd3-time';
+import { 
+  timeMillisecond,
+  utcMillisecond,
+  timeSecond,
+  utcSecond,
+  timeMinute,
+  utcMinute,
+  timeHour,
+  utcHour,
+  timeDay,
+  utcDay,
+  timeWeek,
+  utcWeek,
+  timeSunday,
+  utcSunday,
+  timeMonday,
+  utcMonday,
+  timeTuesday,
+  utcTuesday,
+  timeWednesday,
+  utcWednesday,
+  timeThursday,
+  utcThursday,
+  timeFriday,
+  utcFriday,
+  timeSaturday,
+  utcSaturday,
+  timeMonth,
+  utcMonth,
+  timeYear,
+  utcYear,
+} from 'd3-time';
+
 import { 
   curveBasis,
   curveBundle,
@@ -37,6 +69,57 @@ import {
   presentation10 as presentation10,
   display as display
 } from '@redsift/d3-rs-theme';
+
+const intervals = {
+  timeMillisecond: [timeMillisecond, 1],
+  timeTnMillisecond: [timeMillisecond, 10],
+  timeHnMillisecond: [timeMillisecond, 100],
+  utcMillisecond: [utcMillisecond, 1],
+  utcTnMillisecond: [utcMillisecond, 10],
+  utcHnMillisecond: [utcMillisecond, 100],
+  timeSecond: [timeSecond, 1],
+  timeTnSecond: [timeSecond, 10],
+  utcSecond: [utcSecond, 1],
+  utcTnSecond: [utcSecond, 10],
+  timeMinute: [timeMinute, 1],
+  utcMinute: [utcMinute, 1],
+  timeHour: [timeHour, 1],
+  utcHour: [utcHour, 1],
+  timeDay: [timeDay, 1],
+  timeBiDay: [timeDay, 2],  
+  utcDay: [utcDay, 1],
+  utcBiDay: [utcDay, 2],
+  timeSunday: [timeSunday, 1],
+  utcSunday: [utcSunday, 1],
+  timeMonday: [timeMonday, 1],
+  utcMonday: [utcMonday, 1],
+  timeTuesday: [timeTuesday, 1],
+  utcTuesday: [utcTuesday, 1],
+  timeWednesday: [timeWednesday, 1],
+  utcWednesday: [utcWednesday, 1],
+  timeThursday: [timeThursday, 1],
+  utcThursday: [utcThursday, 1],
+  timeFriday: [timeFriday, 1],
+  utcFriday: [utcFriday, 1],
+  timeSaturday: [timeSaturday, 1],
+  utcSaturday: [utcSaturday, 1],
+  timeWeek: [timeWeek, 1],
+  timeBiWeek: [timeWeek, 2],
+  utcWeek: [utcWeek, 1],
+  utcBiWeek: [utcWeek, 2],
+  timeMonth: [timeMonth, 1],
+  timeBiMonth: [timeMonth, 2],
+  timeQtMonth: [timeMonth, 3],
+  utcMonth: [utcMonth, 1],
+  utcBiMonth: [utcMonth, 2],
+  utcTrMonth: [utcMonth, 3],
+  timeYear: [timeYear, 1],
+  timeBiYear: [timeYear, 2],
+  timeDecade: [timeYear, 10],
+  utcYear: [utcYear, 1],
+  utcBiYear: [utcYear, 2],
+  utcDecade: [utcYear, 10]
+};
 
 const curves = {
   curveBasis: curveBasis,
@@ -180,7 +263,7 @@ export default function lines(id) {
   
   let _mapCurve = _map(curves);
   let _mapSymbols = _map(symbols);
-  let _mapTickCount = _map(times);
+  let _mapIntervalTickCount = _map(intervals);
  
   function _makeFillFn() {
     let colors = () => fill;
@@ -355,7 +438,17 @@ export default function lines(id) {
           .attr('class', gridValue ? 'grid' : null);
 
       let aI = axisBottom(scaleI);
-      if (labelTime != null) aI = aI.ticks(_mapTickCount(tickCountIndex), labelTime);
+      if (labelTime != null) {
+        let freq = _mapIntervalTickCount(tickCountIndex);
+        if (freq != null) {
+          aI = aI.tickArguments(freq);
+        }
+        aI.tickFormat(timeFormat(labelTime));
+      } else {
+        if (tickCountIndex != null) {
+          aI = aI.ticks(tickCountIndex);
+        }
+      }
       if (gridIndex === true) {
         aI.tickSizeInner(inset - h);
       }  

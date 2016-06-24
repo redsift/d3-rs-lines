@@ -451,7 +451,17 @@
     */
     // [ 'symbolCross', 'symbolStar' ]
     // 
-    d3.select('#elm').datum(TIMES).call(d3_rs_lines.html('basic-time').labelTime('%d-%b').curve('').symbol([ null, 'symbolStar' ]).scale(2).language('ru'));
+    
+    let area = d3_rs_lines.html('basic-time')
+                    .scale(2)
+                    .labelTime('%d-%b')
+                    .curve('')
+                    .fill([ 'green', 'red' ])
+                    .symbol([ null, 'symbolStar' ])
+                    .tickCountIndex('timeWeek') // timeWeek, timeBiWeek
+                    .language('ru');
+    
+    d3.select('#elm').datum(TIMES).call(area);
 
 
     </script>
