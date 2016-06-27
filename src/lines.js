@@ -342,7 +342,6 @@ export default function lines(id) {
         g.append('g').attr('class', 'axis-i axis');
         g.append('g').attr('class', 'legend');
         g.append('g').attr('class', 'lines');
-        g.append('g').attr('class', 'symbols');
       }
 
       let data = g.datum() || [];
@@ -486,30 +485,23 @@ export default function lines(id) {
             
       let elmL = g.select('g.lines');
 
+      let elmG = elmL.selectAll('g.line').data(vdata);
+      elmG.exit().remove();
+      let elmGNew = elmG.enter().append('g').attr('class', 'line');
+      elmGNew.append('path').attr('class', 'area').attr('stroke', 'none');
+      elmGNew.append('path').attr('class', 'stroke').attr('fill', 'none');
+      elmGNew.append('g').attr('class', 'symbols');
+      elmG = elmG.merge(elmGNew);
+      
       let elmArea = elmL.selectAll('path.area').data(vdata);
-      elmArea.exit().remove();
-      elmArea = elmArea.enter()
-                        .append('path')
-                        .attr('class', 'area').attr('stroke', 'none').merge(elmArea);
       elmArea.attr('d', areas)
               .attr('fill', colors);   
 
       let elmStroke = elmL.selectAll('path.stroke').data(vdata);
-      elmStroke.exit().remove();
-      elmStroke = elmStroke.enter()
-                            .append('path')
-                            .attr('class', 'stroke')
-                            .attr('fill', 'none');
       elmStroke.attr('d', lines)
                 .attr('stroke', colors);     
 
-      let eSym = g.select('g.symbols')
-                    .selectAll('g.symbol')
-                    .data(vdata);
-      eSym.exit().remove();
-      eSym = eSym.enter().append('g').attr('class', 'symbol').merge(eSym);
-
-      let eS = eSym.selectAll('path').data((d, i) => d.map(function (v) { return { v : v, i : i }; }));
+      let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => d.map(function (v) { return { v : v, i : i }; }));
       eS.exit().remove();
       eS = eS.enter().append('path').merge(eS);
       eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+scaleV(d.v[1])+')')
