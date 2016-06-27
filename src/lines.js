@@ -1,21 +1,148 @@
 
 import { select } from 'd3-selection';
-import { line, area, curveCatmullRom } from 'd3-shape';
+import { line, area, symbol } from 'd3-shape';
 import { max, min } from 'd3-array';
 import { scaleLinear, scaleLog, scaleTime } from 'd3-scale';
 import { axisBottom, axisLeft } from 'd3-axis';
 import { timeFormat, timeFormatDefaultLocale } from 'd3-time-format';
 import { format, formatDefaultLocale } from 'd3-format';
-import * as times from 'd3-time';
+
+import { 
+  timeMillisecond,
+  utcMillisecond,
+  timeSecond,
+  utcSecond,
+  timeMinute,
+  utcMinute,
+  timeHour,
+  utcHour,
+  timeDay,
+  utcDay,
+  timeWeek,
+  utcWeek,
+  timeSunday,
+  utcSunday,
+  timeMonday,
+  utcMonday,
+  timeTuesday,
+  utcTuesday,
+  timeWednesday,
+  utcWednesday,
+  timeThursday,
+  utcThursday,
+  timeFriday,
+  utcFriday,
+  timeSaturday,
+  utcSaturday,
+  timeMonth,
+  utcMonth,
+  timeYear,
+  utcYear
+} from 'd3-time';
+
+import { 
+  curveBasis,
+//curveBundle,
+  curveCardinal,
+  curveCatmullRom,
+  curveMonotoneX,
+  curveMonotoneY,
+  curveNatural,
+  curveStep,
+  curveStepAfter,
+  curveStepBefore,
+  symbolCircle,
+  symbolCross,
+  symbolDiamond,
+  symbolSquare,
+  symbolStar,
+  symbolTriangle,
+  symbolWye
+} from 'd3-shape';
+
 
 import { html as svg } from '@redsift/d3-rs-svg';
 import { units, time } from "@redsift/d3-rs-intl";
 import { tip } from "@redsift/d3-rs-tip";
 import { 
-  random as random, 
   presentation10 as presentation10,
   display as display
 } from '@redsift/d3-rs-theme';
+
+const intervals = {
+  timeMillisecond: [timeMillisecond, 1],
+  timeTnMillisecond: [timeMillisecond, 10],
+  timeHnMillisecond: [timeMillisecond, 100],
+  utcMillisecond: [utcMillisecond, 1],
+  utcTnMillisecond: [utcMillisecond, 10],
+  utcHnMillisecond: [utcMillisecond, 100],
+  timeSecond: [timeSecond, 1],
+  timeTnSecond: [timeSecond, 10],
+  utcSecond: [utcSecond, 1],
+  utcTnSecond: [utcSecond, 10],
+  timeMinute: [timeMinute, 1],
+  utcMinute: [utcMinute, 1],
+  timeHour: [timeHour, 1],
+  utcHour: [utcHour, 1],
+  timeDay: [timeDay, 1],
+  timeBiDay: [timeDay, 2],  
+  utcDay: [utcDay, 1],
+  utcBiDay: [utcDay, 2],
+  timeSunday: [timeSunday, 1],
+  utcSunday: [utcSunday, 1],
+  timeMonday: [timeMonday, 1],
+  utcMonday: [utcMonday, 1],
+  timeTuesday: [timeTuesday, 1],
+  utcTuesday: [utcTuesday, 1],
+  timeWednesday: [timeWednesday, 1],
+  utcWednesday: [utcWednesday, 1],
+  timeThursday: [timeThursday, 1],
+  utcThursday: [utcThursday, 1],
+  timeFriday: [timeFriday, 1],
+  utcFriday: [utcFriday, 1],
+  timeSaturday: [timeSaturday, 1],
+  utcSaturday: [utcSaturday, 1],
+  timeWeek: [timeWeek, 1],
+  timeBiWeek: [timeWeek, 2],
+  utcWeek: [utcWeek, 1],
+  utcBiWeek: [utcWeek, 2],
+  timeMonth: [timeMonth, 1],
+  timeBiMonth: [timeMonth, 2],
+  timeQtMonth: [timeMonth, 3],
+  utcMonth: [utcMonth, 1],
+  utcBiMonth: [utcMonth, 2],
+  utcTrMonth: [utcMonth, 3],
+  timeYear: [timeYear, 1],
+  timeBiYear: [timeYear, 2],
+  timeDecade: [timeYear, 10],
+  utcYear: [utcYear, 1],
+  utcBiYear: [utcYear, 2],
+  utcDecade: [utcYear, 10]
+};
+
+const curves = {
+  curveBasis: curveBasis,
+//curveBundle: curveBundle, -- does not support area
+  curveCardinal: curveCardinal,
+  curveCatmullRom: curveCatmullRom,
+  curveMonotoneX: curveMonotoneX,
+  curveMonotoneY: curveMonotoneY,
+  curveNatural: curveNatural, 
+  curveStep: curveStep,
+  curveStepAfter: curveStepAfter,
+  curveStepBefore: curveStepBefore
+};
+
+const symbols = {
+  symbolCircle: symbolCircle,
+  symbolCross: symbolCross,
+  symbolDiamond: symbolDiamond,
+  symbolSquare: symbolSquare,
+  symbolStar: symbolStar,
+  symbolTriangle: symbolTriangle,
+  symbolWye: symbolWye  
+}
+
 
 const DEFAULT_SIZE = 420;
 const DEFAULT_ASPECT = 160 / 420;
@@ -25,14 +152,24 @@ const DEFAULT_TICK_FORMAT_VALUE = ',.0f';
 const DEFAULT_TICK_FORMAT_VALUE_SI = '.2s';
 const DEFAULT_TICK_FORMAT_VALUE_SMALL = '.3f';
 const DEFAULT_TICK_COUNT = 4;
+const DEFAULT_SYMBOL_SIZE = 32;
 const DEFAULT_SCALE = 42; // why not
 const DEFAULT_LEGEND_SIZE = 10;
 const DEFAULT_LEGEND_PADDING_X = 8;
 const DEFAULT_LEGEND_PADDING_Y = 24;
 const DEFAULT_LEGEND_TEXT_SCALE = 8; // hack value to do fast estimation of length of string
-const DEFAULT_HIGHLIGHT_TEXT_PADDING = 2;
+
 // Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
-const DEFAULT_STYLE = "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300); text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; } .axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; } .lines path { fill: none } line { stroke-width: 1.5px } line.grid { stroke-width: 1.0px } .legend text { font-size: 12px } .highlight { opacity: 0.66 } .highlight text { font-size: 12px } ";
+const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300);",
+                        "text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
+                        ".axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; }",
+                        "line { stroke-width: 1.5px }",
+                        "line.grid { stroke-width: 1.0px }",
+                        ".legend text { font-size: 12px }",
+                        "path.area { opacity: 0.33 }",
+                        ".highlight { opacity: 0.66 }",
+                        ".highlight text { font-size: 12px }"
+                      ].join(' \n');
 
 export default function lines(id) {
   let classed = 'chart-lines', 
@@ -62,6 +199,9 @@ export default function lines(id) {
       legend = [ ],
       fill = null,
       labelTime = null,
+      curve = curveCatmullRom.alpha(0),
+      psymbol = [ ],
+      symbolSize = DEFAULT_SYMBOL_SIZE,
       highlight = [ ],
       displayTip = -1,
       value = function (d, i) {
@@ -73,13 +213,28 @@ export default function lines(id) {
           d = d.v;
         }
 
-        return [ i, d ];
+        return [ i, Array.isArray(d) ? d : [ d ] ];
       };
 
   // [ [ [i1,v1], [i1,v1] ], [ [i2,v2] ... ], ... ]
   function _flatArrays(a) {
-      // TODO: Series support
-      return a.map(d => [ d[0], Array.isArray(d[1]) ? d[1][0] : d[1] ])
+      let maxD = max(a, d => d[1].length);
+      let result = [];
+      
+      for (let i=0; i<maxD; ++i) {
+        let v = a.map(function (d) {
+          if (i === 0) {
+            return [ d[0], Array.isArray(d[1]) ? d[1][i] : d[1] ]
+          }
+          
+          if (Array.isArray(d[1]) && d[1].length > i) return [ d[0], d[1][i] ]
+          
+          return null;
+        });
+        result.push(v.filter(d => d !== null)); 
+      }      
+      
+      return result;
   }
     
   function _coerceArray(d) {
@@ -94,24 +249,30 @@ export default function lines(id) {
     return d;
   }
   
-  function _mapTickCount(t) {
-    if (t == null) return null;
-    // TODO: does not seem to behave
-    if (typeof t === 'string') {
-      return times[t];
+  function _map(map) {
+    return function (c) {
+      if (c == null) return null;
+      // TODO: does not seem to behave
+      if (typeof c === 'string') {
+        return map[c];
+      }
+      return c;
     }
-    return t;
   }
   
+  let _mapCurve = _map(curves);
+  let _mapSymbols = _map(symbols);
+  let _mapIntervalTickCount = _map(intervals);
+ 
   function _makeFillFn() {
     let colors = () => fill;
     if (fill == null) {
-      colors = () => presentation10.standard[0];
+      let c = presentation10.standard;
+      colors = (d, i) => (c[i % c.length]);
     } else if (typeof fill === 'function') {
       colors = fill;
     } else if (Array.isArray(fill)) {
-      let count = -1;
-      colors = () => (count++, fill[ count % fill.length ])
+      colors = (d, i) => fill[ i % fill.length ];
     }
     return colors;  
   }  
@@ -121,16 +282,13 @@ export default function lines(id) {
         transition = (context.selection !== undefined);
    
     formatDefaultLocale(units(language).d3);
+    if (labelTime != null) {
+      timeFormatDefaultLocale(time(language).d3);
+    }
 
     let defaultValueFormat = format(DEFAULT_TICK_FORMAT_VALUE);
     let defaultValueFormatSi = format(DEFAULT_TICK_FORMAT_VALUE_SI);
     let defaultValueFormatSmall = format(DEFAULT_TICK_FORMAT_VALUE_SMALL);    
-
-    let formatTime = null;
-    if (labelTime != null) {
-      timeFormatDefaultLocale(time(language).d3);
-      formatTime = timeFormat(labelTime);
-    }
       
     let scaleFn = tickDisplayValue;
     if (scaleFn == null && logValue === 0) {
@@ -184,19 +342,18 @@ export default function lines(id) {
         g.append('g').attr('class', 'axis-i axis');
         g.append('g').attr('class', 'legend');
         g.append('g').attr('class', 'lines');
+        g.append('g').attr('class', 'symbols');
       }
 
       let data = g.datum() || [];
       
       let vdata = _flatArrays(data.map((d, i) => value(d, i)));
       
-      console.log(vdata);
-      
       g.datum(vdata); // this rebind is required even though there is a following select
 
       let minV = minValue;
       if (minV == null) {
-        minV = min(vdata, (d) => d[1]);
+        minV = min(vdata, d => min(d, d1 => d1[1]));
         if (minV > 0) {
           minV = logValue === 0 ? 0 : 1;
         }
@@ -204,19 +361,21 @@ export default function lines(id) {
             
       let maxV = maxValue;
       if (maxV == null) {
-        maxV = max(vdata, d => d[1]);
+        maxV = max(vdata, d => max(d, d1 => d1[1]));
       }
       
       let minI = minIndex;
       if (minI == null) {
-        minI = min(vdata, (d) => d[0]);
+        minI = min(vdata, d => min(d, d1 => d1[0]));
       }
+      if (minI == null) minI = 0;
       
       let maxI = maxIndex;
       if (maxI == null) {
-        maxI = max(vdata, (d) => d[0]);
+        maxI = max(vdata, d => max(d, d1 => d1[0]));
       }
-                        
+      if (maxI == null) maxI = DEFAULT_SCALE;
+                       
       let w = root.childWidth(),
           h = root.childHeight();
       
@@ -228,7 +387,7 @@ export default function lines(id) {
         lg.exit().remove();
         let newlg = lg.enter().append('g');
         
-        let colors = () => 'red';
+        let colors = _makeFillFn();
 
         newlg.append('rect')
               .attr('width', DEFAULT_LEGEND_SIZE)
@@ -280,7 +439,17 @@ export default function lines(id) {
           .attr('class', gridValue ? 'grid' : null);
 
       let aI = axisBottom(scaleI);
-      if (labelTime != null) aI = aI.ticks(_mapTickCount(tickCountIndex), labelTime);
+      if (labelTime != null) {
+        let freq = _mapIntervalTickCount(tickCountIndex);
+        if (freq != null) {
+          aI = aI.tickArguments(freq);
+        }
+        aI.tickFormat(timeFormat(labelTime));
+      } else {
+        if (tickCountIndex != null) {
+          aI = aI.ticks(tickCountIndex);
+        }
+      }
       if (gridIndex === true) {
         aI.tickSizeInner(inset - h);
       }  
@@ -296,14 +465,58 @@ export default function lines(id) {
           
       let lines = line()
         .x(d => scaleI(d[0]))
-        .y(d => scaleV(d[1]))
-        .curve(curveCatmullRom.alpha(0));  
+        .y(d => scaleV(d[1]));
+      
+      let areas = area()
+          .x(d => scaleI(d[0]))
+          .y0(h)
+          .y1(d => scaleV(d[1]));      
+      
+      let cv = _mapCurve(curve);
+      if (cv != null) {  
+        lines.curve(cv);  
+        areas.curve(cv);
+      }
       
       let colors = _makeFillFn();
-      g.select('g.lines')
-        .append('path')
-        .attr('d', lines)
-        .attr('stroke', colors);     
+   
+      let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
+      let noop = () => '';
+      let sym = vdata.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : noop);
+            
+      let elmL = g.select('g.lines');
+
+      let elmArea = elmL.selectAll('path.area').data(vdata);
+      elmArea.exit().remove();
+      elmArea = elmArea.enter()
+                        .append('path')
+                        .attr('class', 'area').attr('stroke', 'none').merge(elmArea);
+      elmArea.attr('d', areas)
+              .attr('fill', colors);   
+
+      let elmStroke = elmL.selectAll('path.stroke').data(vdata);
+      elmStroke.exit().remove();
+      elmStroke = elmStroke.enter()
+                            .append('path')
+                            .attr('class', 'stroke')
+                            .attr('fill', 'none');
+      elmStroke.attr('d', lines)
+                .attr('stroke', colors);     
+
+      let eSym = g.select('g.symbols')
+                    .selectAll('g.symbol')
+                    .data(vdata);
+      eSym.exit().remove();
+      eSym = eSym.enter().append('g').attr('class', 'symbol').merge(eSym);
+
+      let eS = eSym.selectAll('path').data((d, i) => d.map(function (v) { return { v : v, i : i }; }));
+      eS.exit().remove();
+      eS = eS.enter().append('path').merge(eS);
+      eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+scaleV(d.v[1])+')')
+        .attr('d', (d) => sym[d.i](d.v, d.i))
+        .attr('fill', d => colors(d.v, d.i))
+        .attr('stroke', 'none');  
+
     });
     
   }
@@ -433,6 +646,18 @@ export default function lines(id) {
   _impl.niceIndex = function(value) {
     return arguments.length ? (niceIndex = value, _impl) : niceIndex;
   }; 
+
+  _impl.curve = function(value) {
+    return arguments.length ? (curve = value, _impl) : curve;
+  }; 
+  
+  _impl.symbol = function(value) {
+    return arguments.length ? (psymbol = _coerceArray(value), _impl) : psymbol;
+  };   
+
+  _impl.symbolSize = function(value) {
+    return arguments.length ? (symbolSize = value, _impl) : symbolSize;
+  };    
   
   _impl.fill = function(value) {
     return arguments.length ? (fill = value, _impl) : fill;

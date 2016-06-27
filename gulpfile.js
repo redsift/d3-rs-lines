@@ -62,7 +62,7 @@ gulp.task('umd', task.umd = () => {
             sourceMap: true,
             plugins: [ 
                         json({
-                            include: [ './package.json' , 'node_modules/**' ], 
+                            include: [ '**/package.json' , 'node_modules/**/*.json' ], 
                             exclude: [  ]
                         }),
                         nodeResolve({
