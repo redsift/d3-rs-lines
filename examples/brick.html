@@ -16,6 +16,8 @@
     <script>
 
     'use strict';
+
+    d3.select('#elm').call(d3_rs_lines.html('empty'));
     
     d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('basic'));
 

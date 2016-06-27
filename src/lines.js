@@ -37,12 +37,12 @@ import {
   timeMonth,
   utcMonth,
   timeYear,
-  utcYear,
+  utcYear
 } from 'd3-time';
 
 import { 
   curveBasis,
-  curveBundle,
+//curveBundle,
   curveCardinal,
   curveCatmullRom,
   curveMonotoneX,
@@ -65,7 +65,6 @@ import { html as svg } from '@redsift/d3-rs-svg';
 import { units, time } from "@redsift/d3-rs-intl";
 import { tip } from "@redsift/d3-rs-tip";
 import { 
-  random as random, 
   presentation10 as presentation10,
   display as display
 } from '@redsift/d3-rs-theme';
@@ -159,7 +158,7 @@ const DEFAULT_LEGEND_SIZE = 10;
 const DEFAULT_LEGEND_PADDING_X = 8;
 const DEFAULT_LEGEND_PADDING_Y = 24;
 const DEFAULT_LEGEND_TEXT_SCALE = 8; // hack value to do fast estimation of length of string
-const DEFAULT_HIGHLIGHT_TEXT_PADDING = 2;
+
 // Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
 const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300);",
                         "text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
@@ -369,11 +368,13 @@ export default function lines(id) {
       if (minI == null) {
         minI = min(vdata, d => min(d, d1 => d1[0]));
       }
+      if (minI == null) minI = 0;
       
       let maxI = maxIndex;
       if (maxI == null) {
         maxI = max(vdata, d => max(d, d1 => d1[0]));
       }
+      if (maxI == null) maxI = DEFAULT_SCALE;
                        
       let w = root.childWidth(),
           h = root.childHeight();
