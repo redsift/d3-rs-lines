@@ -480,8 +480,7 @@ export default function lines(id) {
       let colors = _makeFillFn();
    
       let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
-      let noop = () => '';
-      let sym = vdata.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : noop);
+      let sym = vdata.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : null);
             
       let elmL = g.select('g.lines');
 
@@ -501,7 +500,7 @@ export default function lines(id) {
       elmStroke.attr('d', lines)
                 .attr('stroke', colors);     
 
-      let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => d.map(function (v) { return { v : v, i : i }; }));
+      let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => sym[i] != null ? d.map(function (v) { return { v : v, i : i }; }) : []);
       eS.exit().remove();
       eS = eS.enter().append('path').merge(eS);
       eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+scaleV(d.v[1])+')')
