@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <style>
+      
+    body {
+      margin: 1em;
+    }
+
+    </style>    
+  </head>
+  <body>
+    <p>The Federal Reserve Bank of St. Louis wrote about <a href="https://fredblog.stlouisfed.org/2016/04/job-polarization/">changes in the U.S. labor market</a>.</p>
+    <p>Data us presented here via the <code>d3-rs-lines</code> chart.</p>
+    <div id="elm"></div>
+        
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="/d3-rs-lines.umd-es2015.min.js"></script>
+    <script>
+
+    'use strict';
+    /*
+    LNU02032201, Employment Level: Management, Professional, and Related Occupations (nonroutine cognitive)
+
+    LNU02032205, Employment Level: Sales and Office Occupations (routine cognitive)
+
+    LNU02032210, Employment Level: Construction and Extraction Occupations (routine manual)
+    LNU02032211, Employment Level: Installation, Maintenance, and Repair Occupations (routine manual)
+    LNU02032212, Employment Level: Production, Transportation and Material Moving Occupations (routine manual)
+
+    LNU02032204, Employment Level: Service Occupations (nonroutine manual)
+    */
+    
+    var requests = [ 
+      'LNU02032201', 
+      'LNU02032205',
+      'LNU02032204'    
+    ]
+    .map(id => '/' + id + '.json')
+    .map(function (url) {
+      return new Promise(ok => d3.json(url, ok));  
+    });
+    
+    Promise.all(requests)
+    .then(function (raw) {
+      var parseDate = d3.timeParse('%Y-%m-%d');
+      var data = raw.map(e => e.observations.map(d => ({ l: parseDate(d.date), v: parseInt(d.value) })));
+
+/*                      .width(600)
+                      .height(400)*/
+
+      var display = d3_rs_lines.html()
+                      .labelTime('%Y')
+                      .fillArea(null)
+                      .niceIndex('false');
+      
+      d3.select('#elm').datum(data[0]).call(display);
+    })
+    .catch(console.error);
+    
+
+
+
+    </script>
+  </body>
+</html>

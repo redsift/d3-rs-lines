@@ -5,7 +5,7 @@ import { max, min } from 'd3-array';
 import { scaleLinear, scaleLog, scaleTime } from 'd3-scale';
 import { axisBottom, axisLeft } from 'd3-axis';
 import { timeFormat, timeFormatDefaultLocale } from 'd3-time-format';
-import { format, formatDefaultLocale } from 'd3-format';
+import { formatDefaultLocale } from 'd3-format';
 
 import { 
   timeMillisecond,
@@ -148,9 +148,6 @@ const DEFAULT_SIZE = 420;
 const DEFAULT_ASPECT = 160 / 420;
 const DEFAULT_MARGIN = 40;  // white space
 const DEFAULT_INSET = 24;   // scale space
-const DEFAULT_TICK_FORMAT_VALUE = ',.0f';
-const DEFAULT_TICK_FORMAT_VALUE_SI = '.2s';
-const DEFAULT_TICK_FORMAT_VALUE_SMALL = '.3f';
 const DEFAULT_TICK_COUNT = 4;
 const DEFAULT_SYMBOL_SIZE = 32;
 const DEFAULT_SCALE = 42; // why not
@@ -166,6 +163,7 @@ const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Sou
                         "line { stroke-width: 1.5px }",
                         "line.grid { stroke-width: 1.0px }",
                         ".legend text { font-size: 12px }",
+                        "path.stroke { stroke-width: 2.5px }",
                         "path.area { opacity: 0.33 }",
                         ".highlight { opacity: 0.66 }",
                         ".highlight text { font-size: 12px }"
@@ -187,6 +185,7 @@ export default function lines(id) {
       maxIndex = null,
       inset = DEFAULT_INSET,
       tickFormatValue = null,
+      tickFormatIndex = null,
       tickDisplayValue = null,
       tickDisplayIndex = null,
       tickCountValue = DEFAULT_TICK_COUNT,
@@ -195,6 +194,7 @@ export default function lines(id) {
       niceIndex = true,
       gridValue = true,
       gridIndex = false,
+      fillArea = true,
       language = null,
       legend = [ ],
       fill = null,
@@ -282,33 +282,7 @@ export default function lines(id) {
         transition = (context.selection !== undefined);
    
     formatDefaultLocale(units(language).d3);
-    if (labelTime != null) {
-      timeFormatDefaultLocale(time(language).d3);
-    }
-
-    let defaultValueFormat = format(DEFAULT_TICK_FORMAT_VALUE);
-    let defaultValueFormatSi = format(DEFAULT_TICK_FORMAT_VALUE_SI);
-    let defaultValueFormatSmall = format(DEFAULT_TICK_FORMAT_VALUE_SMALL);    
-      
-    let scaleFn = tickDisplayValue;
-    if (scaleFn == null && logValue === 0) {
-      if (tickFormatValue != null) {
-        let fn = format(tickFormatValue);
-        scaleFn = (i) => fn(i); 
-      } else {
-        scaleFn = function (i) {
-          if (i === 0.0) {
-            return defaultValueFormat(i);
-          } else if (i > 9999 || i <= 0.001) {
-            return defaultValueFormatSi(i);  
-          } else if (i < 1) {
-            return defaultValueFormatSmall(i);  
-          } else {
-            return defaultValueFormat(i);
-          }
-        }
-      }
-    }
+    timeFormatDefaultLocale(time(language).d3);
       
     selection.each(function() {
       let node = select(this);  
@@ -424,12 +398,18 @@ export default function lines(id) {
       if (niceIndex === true) {
         scaleI = scaleI.nice();
       }
-            
-      let aV = axisLeft(scaleV).ticks(tickCountValue, (tickFormatValue == null ? DEFAULT_TICK_FORMAT_VALUE : tickFormatValue));
+
+      let formatValue = tickFormatValue;
+      if (logValue > 0 && formatValue == null) {
+        formatValue = '.0r';
+      }            
+      let aV = axisLeft(scaleV).ticks(tickCountValue, (formatValue == null ? scaleV.tickFormat(tickCountValue) : formatValue));
       if (gridValue === true) {
         aV.tickSizeInner(inset - w);
       }
-      aV.tickFormat(scaleFn);
+      if (tickDisplayValue) {
+        aV.tickFormat(tickDisplayValue);
+      }
 
       g.select('g.axis-v')
         .attr('transform', 'translate(0,0)')
@@ -445,15 +425,13 @@ export default function lines(id) {
         }
         aI.tickFormat(timeFormat(labelTime));
       } else {
-        if (tickCountIndex != null) {
-          aI = aI.ticks(tickCountIndex);
-        }
+        aI = aI.ticks(tickCountIndex, (tickFormatIndex == null ? scaleI.tickFormat(tickCountIndex) : tickFormatIndex));
       }
       if (gridIndex === true) {
         aI.tickSizeInner(inset - h);
       }  
       if (tickDisplayIndex != null) {
-        aI.tickFormat(i => tickDisplayIndex(i));
+        aI.tickFormat(tickDisplayIndex);
       }   
       
       g.select('g.axis-i')
@@ -492,7 +470,7 @@ export default function lines(id) {
       elmGNew.append('g').attr('class', 'symbols');
       elmG = elmG.merge(elmGNew);
       
-      let elmArea = elmL.selectAll('path.area').data(vdata);
+      let elmArea = elmL.selectAll('path.area').data(vdata.map((d,i) => fillArea === true ? d : []));
       elmArea.attr('d', areas)
               .attr('fill', colors);   
 
@@ -577,6 +555,10 @@ export default function lines(id) {
   _impl.tickFormatValue = function(value) {
     return arguments.length ? (tickFormatValue = value, _impl) : tickFormatValue;
   };  
+  
+  _impl.tickFormatIndex = function(value) {
+    return arguments.length ? (tickFormatIndex = value, _impl) : tickFormatIndex;
+  };   
 
   _impl.tickDisplayValue = function(value) {
     return arguments.length ? (tickDisplayValue = value, _impl) : tickDisplayValue;
@@ -653,6 +635,11 @@ export default function lines(id) {
   _impl.fill = function(value) {
     return arguments.length ? (fill = value, _impl) : fill;
   };    
+
+  _impl.fillArea = function(value) {
+    return arguments.length ? (fillArea = value, _impl) : fillArea;
+  };              
+             
               
   return _impl;
 }

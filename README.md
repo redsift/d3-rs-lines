@@ -56,6 +56,8 @@ Property|Description|Transition|Preview
 `width`, `height`, `size`, `scale`|*Integer* SVG container sizes|Y
 `style`|*String* Custom CSS to inject into chart|N
 `minValue`,`maxValue`|*Number* Sets the minimum and maximum Value scale range. Note that for log scales, minValue must be > 0.|Y
-`tickCountIndex`|Supports strings, https://github.com/d3/d3-time#intervals
+`tickCountIndex`,`tickCountValue`|*Number, String* Hints at the number of ticks to set in the corresponding axis. Supports strings, https://github.com/d3/d3-time#intervals
+`tickFormatIndex`, `tickFormatValue`|*String, Function*
+`tickDisplayIndex`, `tickDisplayValue`|
 `curve`|*String, Function*, https://github.com/d3/d3-shape#curves, excluding closed and open curves. If a function is supplied, it should implement https://github.com/d3/d3-shape#custom-curves
 `symbol`|*(Array of) String, Function* https://github.com/d3/d3-shape#symbolCircle or https://github.com/d3/d3-shape#custom-symbol-types

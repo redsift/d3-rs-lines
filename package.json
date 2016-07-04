@@ -1,6 +1,6 @@
 {
   "name": "@redsift/d3-rs-lines",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Generates line charts using D3v4.",
   "keywords": [
     "line",
@@ -22,8 +22,8 @@
     "url": "https://github.com/redsift/d3-rs-lines.git"
   },
   "scripts": {
-    "serve": "gulp -o d3-rs-lines -g d3-selection -g d3-shape -g d3-array -g d3-scale -g d3-axis serve",
-    "build": "gulp -o d3-rs-lines -g d3-selection -g d3-shape -g d3-array -g d3-scale -g d3-axis build",
+    "serve": "gulp -o d3-rs-lines -g d3-selection serve",
+    "build": "gulp -o d3-rs-lines -g d3-selection build",
     "pretest": "npm outdated && npm run build",
     "test": "tape 'test/**/*-test.js' && eslint index.js src",
     "prepublish": "npm run build"
@@ -37,7 +37,8 @@
     "d3-time": "^1.0.0",
     "d3-format": "^1.0.0",
     "d3-time-format": "^2.0.0",
-    "@redsift/d3-rs-svg": "~0.2.3",
+    "@redsift/d3-rs-svg": "~0.2.4",
+    "@redsift/d3-rs-legends": "~0.0.3",    
     "@redsift/d3-rs-theme": "~0.0.2",
     "@redsift/d3-rs-tip": "~0.2.3",     
     "@redsift/d3-rs-intl": "~0.0.2"
@@ -46,17 +47,16 @@
     "@redsift/tape-reel": "~0.0.2",
     "browser-sync": "^2.13.0",
     "del": "^2.2.1",
-    "eslint": "^2.13.1",
+    "eslint": "^3.0.0",
     "gulp": "^3.9.1",
     "gulp-rename": "^1.2.2",
     "gulp-sourcemaps": "^2.0.0-alpha",
     "gulp-uglify": "^1.5.3",
     "gulp-util": "^3.0.7",
-    "json2module": "~0.0.3",
     "rollup": "^0.33.0",
     "rollup-plugin-node-resolve": "^1.5.0",  
     "rollup-plugin-commonjs": "^3.0.0",     
-    "rollup-plugin-buble": "^0.11.0",
+    "rollup-plugin-buble": "^0.12.1",
     "rollup-plugin-json": "^2.0.0",
     "rollup-stream": "^1.8.0",
     "vinyl-buffer": "^1.0.0",
