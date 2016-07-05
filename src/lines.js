@@ -204,7 +204,7 @@ export default function lines(id) {
       symbolSize = DEFAULT_SYMBOL_SIZE,
       highlight = [ ],
       displayTip = -1,
-      value = function (d, i) {
+      value = function (d, i, notArray) {
         if (Array.isArray(d)) {
           return d;
         }
@@ -213,7 +213,7 @@ export default function lines(id) {
           d = d.v;
         }
 
-        return [ i, Array.isArray(d) ? d : [ d ] ];
+        return [ i, (notArray === true || Array.isArray(d)) ? d : [ d ] ];
       };
 
   // [ [ [i1,v1], [i1,v1] ], [ [i2,v2] ... ], ... ]
@@ -320,13 +320,23 @@ export default function lines(id) {
 
       let data = g.datum() || [];
       
-      let vdata = _flatArrays(data.map((d, i) => value(d, i)));
+      if (!Array.isArray(data)) {
+        data = [ data ];
+      }
       
-      g.datum(vdata); // this rebind is required even though there is a following select
+      if (data.length > 0) {
+        if (Array.isArray(data[0])) {
+          data = data.map(a => a.map((d, i) => value(d,i, true)));
+        } else {
+          data = _flatArrays(data.map((d, i) => value(d, i, false)));          
+        }
+      }
+
+      g.datum(data); // this rebind is required even though there is a following select
 
       let minV = minValue;
       if (minV == null) {
-        minV = min(vdata, d => min(d, d1 => d1[1]));
+        minV = min(data, d => min(d, d1 => d1[1]));
         if (minV > 0) {
           minV = logValue === 0 ? 0 : 1;
         }
@@ -334,18 +344,18 @@ export default function lines(id) {
             
       let maxV = maxValue;
       if (maxV == null) {
-        maxV = max(vdata, d => max(d, d1 => d1[1]));
+        maxV = max(data, d => max(d, d1 => d1[1]));
       }
       
       let minI = minIndex;
       if (minI == null) {
-        minI = min(vdata, d => min(d, d1 => d1[0]));
+        minI = min(data, d => min(d, d1 => d1[0]));
       }
       if (minI == null) minI = 0;
       
       let maxI = maxIndex;
       if (maxI == null) {
-        maxI = max(vdata, d => max(d, d1 => d1[0]));
+        maxI = max(data, d => max(d, d1 => d1[0]));
       }
       if (maxI == null) maxI = DEFAULT_SCALE;
                        
@@ -458,11 +468,11 @@ export default function lines(id) {
       let colors = _makeFillFn();
    
       let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
-      let sym = vdata.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : null);
+      let sym = data.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : null);
             
       let elmL = g.select('g.lines');
 
-      let elmG = elmL.selectAll('g.line').data(vdata);
+      let elmG = elmL.selectAll('g.line').data(data);
       elmG.exit().remove();
       let elmGNew = elmG.enter().append('g').attr('class', 'line');
       elmGNew.append('path').attr('class', 'area').attr('stroke', 'none');
@@ -470,11 +480,11 @@ export default function lines(id) {
       elmGNew.append('g').attr('class', 'symbols');
       elmG = elmG.merge(elmGNew);
       
-      let elmArea = elmL.selectAll('path.area').data(vdata.map((d,i) => fillArea === true ? d : []));
+      let elmArea = elmL.selectAll('path.area').data(data.map((d,i) => fillArea === true ? d : []));
       elmArea.attr('d', areas)
               .attr('fill', colors);   
 
-      let elmStroke = elmL.selectAll('path.stroke').data(vdata);
+      let elmStroke = elmL.selectAll('path.stroke').data(data);
       elmStroke.attr('d', lines)
                 .attr('stroke', colors);     
 
