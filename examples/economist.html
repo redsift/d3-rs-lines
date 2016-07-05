@@ -30,34 +30,54 @@
     LNU02032204, Employment Level: Service Occupations (nonroutine manual)
     */
     
-    var requests = [ 
-      'LNU02032201', 
-      'LNU02032205',
-      'LNU02032204'    
-    ]
-    .map(id => '/' + id + '.json')
-    .map(function (url) {
-      return new Promise(ok => d3.json(url, ok));  
-    });
+    var mapping = {
+      'LNU02032201': 'non-routine cognitive', 
+      'LNU02032205': 'routine cognitive', 
+      'LNU02032210': 'routine manual',
+      'LNU02032211': 'routine manual',
+      'LNU02032212': 'routine manual',
+      'LNU02032204': 'non-routine manual'
+    };
     
+    
+    var reports = Object.keys(mapping);
+    var groups = d3.map(reports.map(k => mapping[k]), d => d ).keys();
+    
+    var requests = reports.map(id => '/' + id + '.json')
+                        .map(function (url) {
+                          return new Promise(ok => d3.json(url, ok));  
+                        });
+   
     Promise.all(requests)
-    .then(function (raw) {
-      var parseDate = d3.timeParse('%Y-%m-%d');
-      var data = raw.map(e => e.observations.map(d => ({ l: parseDate(d.date), v: parseInt(d.value) })));
-
-/*                      .width(600)
-                      .height(400)*/
-
-      var display = d3_rs_lines.html()
-                      .labelTime('%Y')
-                      .fillArea(null)
-                      .niceIndex('false');
-      
-      d3.select('#elm').datum(data[0]).call(display);
-    })
-    .catch(console.error);
-    
-
+      .then(function (raw) {
+        var parseDate = d3.timeParse('%Y-%m-%d');
+        
+        return d3.nest()
+                .key(d => d.r)
+                .rollup(a => d3.nest()
+                  .key(d => d.l)
+                  .rollup(a => d3.sum(a, e => e.v))
+                  .entries(a.map(e => e.v)
+                            .reduce((a, e) => a.concat(e), [])
+                          )
+                )
+                .entries(raw.map(e => e.observations.map(d => ({ l: d.date, v: parseInt(d.value) })))
+                                                    .map((d,i) => ({ r: mapping[reports[i]], v: d }))
+                )
+                .map(v => v.value.map(d => ({ l: parseDate(d.key), v: d.value })));
+      })
+      .then(function (data) {
+        var display = d3_rs_lines.html()
+                .labelTime('%Y')
+                .width(700)
+                .height(400)
+                .fillArea(null)
+                .niceIndex('false')
+                .legend(groups);
+        
+        d3.select('#elm').datum(data).call(display);
+      })
+      .catch(console.error);
 
 
     </script>
