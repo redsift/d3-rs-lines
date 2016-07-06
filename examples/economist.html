@@ -5,6 +5,10 @@
     body {
       margin: 1em;
     }
+    /*
+    svg {
+    background-color: #f7f7f7;
+    }*/
 
     </style>    
   </head>
@@ -14,7 +18,7 @@
     <div id="elm"></div>
         
     <script src="https://d3js.org/d3.v4.min.js"></script>
-    <script src="/d3-rs-lines.umd-es2015.min.js"></script>
+    <script src="/d3-rs-lines.umd-es2015.js"></script>
     <script>
 
     'use strict';
@@ -64,20 +68,29 @@
                 .entries(raw.map(e => e.observations.map(d => ({ l: d.date, v: parseInt(d.value) })))
                                                     .map((d,i) => ({ r: mapping[reports[i]], v: d }))
                 )
-                .map(v => v.value.map(d => ({ l: parseDate(d.key), v: d.value })));
+                .map(v => v.value.map(d => ({ l: parseDate(d.key), v: d.value * 1000 })));
       })
       .then(function (data) {
+        var yearFull = d3.timeFormat('%Y');
+        var yearSmall = d3.timeFormat('%y');        
+        
+        // emuates year labeling logic from the enonomist
+        var ecoYears = (y, i) => (i === 0 || y.getUTCFullYear() % 100 === 0) ? yearFull(y) : yearSmall(y);
+        
         var display = d3_rs_lines.html()
-                .labelTime('%Y')
+                .labelTime(ecoYears)
                 .width(700)
                 .height(400)
                 .fillArea(null)
                 .niceIndex('false')
+                .axisValue('right')
+                .tickFormatValue('.0s')
+                .legendOrientation('top')
                 .legend(groups);
         
         d3.select('#elm').datum(data).call(display);
       })
-      .catch(console.error);
+      .catch(e => console.error(e.stack));
 
 
     </script>

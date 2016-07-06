@@ -1,11 +1,14 @@
 
 import { select } from 'd3-selection';
 import { line, area, symbol } from 'd3-shape';
-import { max, min } from 'd3-array';
+import { max, min, descending } from 'd3-array';
 import { scaleLinear, scaleLog, scaleTime } from 'd3-scale';
-import { axisBottom, axisLeft } from 'd3-axis';
+import { axisBottom, axisLeft, axisRight } from 'd3-axis';
 import { timeFormat, timeFormatDefaultLocale } from 'd3-time-format';
 import { formatDefaultLocale } from 'd3-format';
+import { voronoi } from 'd3-voronoi';
+import { polygonArea, polygonCentroid } from 'd3-polygon';
+import { nest } from 'd3-collection';
 
 import { 
   timeMillisecond,
@@ -62,8 +65,9 @@ import {
 
 
 import { html as svg } from '@redsift/d3-rs-svg';
-import { units, time } from "@redsift/d3-rs-intl";
-import { tip } from "@redsift/d3-rs-tip";
+import { svg as legends } from '@redsift/d3-rs-legends';
+import { units, time } from '@redsift/d3-rs-intl';
+import { tip } from '@redsift/d3-rs-tip';
 import { 
   presentation10 as presentation10,
   display as display
@@ -146,28 +150,37 @@ const symbols = {
 
 const DEFAULT_SIZE = 420;
 const DEFAULT_ASPECT = 160 / 420;
-const DEFAULT_MARGIN = 40;  // white space
+const DEFAULT_MARGIN = 26;  // white space
 const DEFAULT_INSET = 24;   // scale space
 const DEFAULT_TICK_COUNT = 4;
 const DEFAULT_SYMBOL_SIZE = 32;
 const DEFAULT_SCALE = 42; // why not
-const DEFAULT_LEGEND_SIZE = 10;
-const DEFAULT_LEGEND_PADDING_X = 8;
-const DEFAULT_LEGEND_PADDING_Y = 24;
-const DEFAULT_LEGEND_TEXT_SCALE = 8; // hack value to do fast estimation of length of string
+const DEFAULT_AXIS_PADDING = 8;
 
 // Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
-const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300);",
-                        "text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
+const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500);",
+                        ".axis text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
+                        ".voronoi text{ font-size: 14px; font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 500 }",
+                        ".chart-legends text{ font-size: 14px; font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
                         ".axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; }",
+                        "g.axis-v path { stroke: none }",
+                        "g.axis-i path, g.axis-i g.tick line { stroke-width: 1.0px; stroke: " + display.text.black + " }",
                         "line { stroke-width: 1.5px }",
-                        "line.grid { stroke-width: 1.0px }",
+                        "line.grid, g.axis-i g.tick line.grid { stroke-width: 2.0px; stroke-dasharray: 2,2; stroke: " + display.lines.seperator + " }",
                         ".legend text { font-size: 12px }",
                         "path.stroke { stroke-width: 2.5px }",
                         "path.area { opacity: 0.33 }",
+                        ".voronoi path { stroke: none }",
                         ".highlight { opacity: 0.66 }",
                         ".highlight text { font-size: 12px }"
                       ].join(' \n');
+
+/*
+                        "path.series-0 { stroke: red }",
+                        "path.series-1 { stroke: green }",
+                        "path.series-2 { stroke: orange }",
+                        "path.series-3 { stroke: grey }" 
+                        */
 
 export default function lines(id) {
   let classed = 'chart-lines', 
@@ -175,7 +188,7 @@ export default function lines(id) {
       background = null,
       width = DEFAULT_SIZE,
       height = null,
-      margin = { top: 0, left: DEFAULT_MARGIN, bottom: DEFAULT_MARGIN, right: 0 },
+      margin = DEFAULT_MARGIN,
       style = DEFAULT_STYLE,
       scale = 1.0,
       logValue = 0,
@@ -183,7 +196,7 @@ export default function lines(id) {
       maxValue = null,
       minIndex = null,
       maxIndex = null,
-      inset = DEFAULT_INSET,
+      inset = null,
       tickFormatValue = null,
       tickFormatIndex = null,
       tickDisplayValue = null,
@@ -196,6 +209,10 @@ export default function lines(id) {
       gridIndex = false,
       fillArea = true,
       language = null,
+      axisValue = 'left',
+      legendOrientation = 'bottom',
+      axisPaddingIndex = DEFAULT_AXIS_PADDING,
+      axisPaddingValue = DEFAULT_AXIS_PADDING,
       legend = [ ],
       fill = null,
       labelTime = null,
@@ -307,6 +324,20 @@ export default function lines(id) {
       let st = style + ' ' + rtip.style();
       rtip.style(st);
       elmS.call(rtip);
+      
+      let _inset = inset;
+      if (_inset == null) {
+        _inset = { top: 0, bottom: DEFAULT_INSET, left: 0, right: 0 };
+        if (axisValue === 'left') {
+          _inset.left = DEFAULT_INSET;
+        } else {
+          _inset.right = DEFAULT_INSET;
+        }
+      } else if (typeof _inset === 'object') {
+        _inset = { top: _inset.top, bottom: _inset.bottom, left: _inset.left, right: _inset.right };
+      } else {
+        _inset = { top: _inset, bottom: _inset, left: _inset, right: _inset };
+      }     
     
       // Create required elements
       let g = elmS.select(_impl.self())
@@ -316,6 +347,7 @@ export default function lines(id) {
         g.append('g').attr('class', 'axis-i axis');
         g.append('g').attr('class', 'legend');
         g.append('g').attr('class', 'lines');
+        g.append('g').attr('class', 'voronoi');
       }
 
       let data = g.datum() || [];
@@ -364,39 +396,16 @@ export default function lines(id) {
       
       // Create the legend
       if (legend.length > 0) {
-        h = h - (DEFAULT_LEGEND_SIZE + DEFAULT_LEGEND_PADDING_Y);
-        let rg = g.select('g.legend');
-        let lg = rg.attr('transform', 'translate(' + (w/2) + ',' + (h + DEFAULT_LEGEND_PADDING_Y) + ')').selectAll('g').data(legend);
-        lg.exit().remove();
-        let newlg = lg.enter().append('g');
-        
-        let colors = _makeFillFn();
+        let lchart = legends().width(w).height(h).inset(0).fill(fill).orientation(legendOrientation);
 
-        newlg.append('rect')
-              .attr('width', DEFAULT_LEGEND_SIZE)
-              .attr('height', DEFAULT_LEGEND_SIZE)
-              .attr('fill', colors);
+        _inset = lchart.childInset(_inset);
 
-        newlg.append('text')
-          .attr('dominant-baseline', 'central')
-          .attr('y', DEFAULT_LEGEND_SIZE / 2)
-          .attr('x', () => DEFAULT_LEGEND_SIZE + DEFAULT_LEGEND_PADDING_X);
-              
-        lg = newlg.merge(lg);
-
-        lg.selectAll('text').text((d) => d);
-
-        let lens = legend.map((s) => s.length * DEFAULT_LEGEND_TEXT_SCALE + DEFAULT_LEGEND_SIZE + 2 * DEFAULT_LEGEND_PADDING_X);
-        let clens = []
-        let total = lens.reduce((p, c) => (clens.push(p) , p + c), 0);
-        
-        let offset = -total / 2;
-        rg.selectAll('g').data(clens).attr('transform', (d) => 'translate(' + (offset + d) + ',0)');
+        elmS.datum(legend).call(lchart);
       }            
       
       let sV = scaleLinear(); 
       if (logValue > 0) sV = scaleLog().base(logValue);
-      let scaleV = sV.domain([ minV, maxV ]).range([ h, inset ]);
+      let scaleV = sV.domain([ minV, maxV ]).range([ h - _inset.bottom, _inset.top ]);
       if (niceValue === true) {
         scaleV = scaleV.nice();
       }
@@ -404,7 +413,7 @@ export default function lines(id) {
       let sI = scaleLinear(); 
       if (labelTime != null) sI = scaleTime();
       let domainI = [ minI, maxI ];
-      let scaleI = sI.domain(domainI).range([ 0, w - inset ]);
+      let scaleI = sI.domain(domainI).range([ _inset.left, w - _inset.right ]);
       if (niceIndex === true) {
         scaleI = scaleI.nice();
       }
@@ -412,40 +421,50 @@ export default function lines(id) {
       let formatValue = tickFormatValue;
       if (logValue > 0 && formatValue == null) {
         formatValue = '.0r';
-      }            
-      let aV = axisLeft(scaleV).ticks(tickCountValue, (formatValue == null ? scaleV.tickFormat(tickCountValue) : formatValue));
+      }        
+      
+      let axis = (axisValue === 'left') ? axisLeft : axisRight;
+          
+      let aV = axis(scaleV)
+                  .tickPadding(axisPaddingValue)
+                  .ticks(tickCountValue, (formatValue == null ? scaleV.tickFormat(tickCountValue) : formatValue));
       if (gridValue === true) {
-        aV.tickSizeInner(inset - w);
+        aV.tickSizeInner((_inset.left + _inset.right) - w);
       }
       if (tickDisplayValue) {
         aV.tickFormat(tickDisplayValue);
       }
 
+      let axisTranslate = (axisValue === 'left') ? _inset.left : w - _inset.right;
       g.select('g.axis-v')
-        .attr('transform', 'translate(0,0)')
+        .attr('transform', 'translate(' + axisTranslate + ',0)')
         .call(aV)
         .selectAll('line')
           .attr('class', gridValue ? 'grid' : null);
 
-      let aI = axisBottom(scaleI);
+      let aI = axisBottom(scaleI).tickPadding(axisPaddingIndex);
       if (labelTime != null) {
         let freq = _mapIntervalTickCount(tickCountIndex);
         if (freq != null) {
           aI = aI.tickArguments(freq);
         }
-        aI.tickFormat(timeFormat(labelTime));
+        if (typeof labelTime === 'function') {
+          aI.tickFormat(labelTime);          
+        } else {
+          aI.tickFormat(timeFormat(labelTime));          
+        }
       } else {
         aI = aI.ticks(tickCountIndex, (tickFormatIndex == null ? scaleI.tickFormat(tickCountIndex) : tickFormatIndex));
       }
       if (gridIndex === true) {
-        aI.tickSizeInner(inset - h);
+        aI.tickSizeInner((_inset.top + _inset.bottom) - h);
       }  
       if (tickDisplayIndex != null) {
         aI.tickFormat(tickDisplayIndex);
       }   
       
       g.select('g.axis-i')
-        .attr('transform', 'translate(0,' + h + ')')
+        .attr('transform', 'translate(0,' + (h - _inset.bottom) + ')')
         .call(aI)
         .selectAll('line')
           .attr('class', gridIndex ? 'grid' : null);  
@@ -495,7 +514,57 @@ export default function lines(id) {
         .attr('d', (d) => sym[d.i](d.v, d.i))
         .attr('fill', d => colors(d.v, d.i))
         .attr('stroke', 'none');  
+      
+      let indexs = [];
+      function seriesFor(v) {
+        for (let i=0; i<indexs.length; ++i) {
+          if (v < indexs[i]) return i - 1;
+        }
+        
+        return indexs.length - 1;
+      }
+      let flat = data.reduce((p, a) => (indexs.push(p.length), p.concat(a)), []);
+      let overlay = voronoi()
+                    .x(d => scaleI(d[0]))
+	                  .y(d => scaleV(d[1]))
+                    .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
+                    .polygons(flat);
+      
+      const centerI = (scaleI.range()[1] - scaleI.range()[0]) / 2;
+      const UNIT_TO_RAD = Math.PI / 2;
 
+      // larger number, more suitable polygon
+      // the more central (in x), the more suitable
+      function polygonSuitability(d) {
+        let centraility = Math.cos(UNIT_TO_RAD * Math.abs(centerI - polygonCentroid(d)[0]) / centerI);
+        return polygonArea(d) * centraility;
+      }
+      
+      let candidates = nest()
+                    .key(d => d.s)
+                    .sortValues((a,b) => descending(a.a, b.a))
+                    .entries(overlay.map((d, i) => ({ a: polygonSuitability(d), s: seriesFor(i), i: i })))
+                    .map(d => d.values[0].i);    
+                
+      console.log(candidates);
+      g.select('g.voronoi').selectAll('path').data(overlay)
+            .enter().append('path')
+              .attr('d', (d, i) => 'M' + d.join('L') + 'Z')
+              .attr('class', (d, i) => 'series-' + seriesFor(i))
+              .attr('fill', 'none')
+              .style('pointer-events', 'all');
+// highlight selected entry
+//            .attr('fill', (d, i) => (candidates.indexOf(i) === -1) ? 'none' : 'red')
+              
+      let labels = candidates.map(i => polygonCentroid(overlay[i]));
+      g.select('g.voronoi').selectAll('text').data(labels)
+            .enter().append('text')
+            .attr('x', d => d[0])
+            .attr('y', d => d[1])
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'central')
+            .attr('fill', colors)
+            .text((d, i) => i < legend.length ? legend[i] : '');
     });
     
   }
@@ -649,7 +718,23 @@ export default function lines(id) {
   _impl.fillArea = function(value) {
     return arguments.length ? (fillArea = value, _impl) : fillArea;
   };              
-             
+  
+  _impl.axisValue = function(value) {
+    return arguments.length ? (axisValue = value, _impl) : axisValue;
+  };    
+
+  _impl.axisPaddingIndex = function(value) {
+    return arguments.length ? (axisPaddingIndex = value, _impl) : axisPaddingIndex;
+  };   
+  
+  _impl.axisPaddingValue = function(value) {
+    return arguments.length ? (axisPaddingValue = value, _impl) : axisPaddingValue;
+  };      
+  
+  _impl.legendOrientation = function(value) {
+    return arguments.length ? (legendOrientation = value, _impl) : legendOrientation;
+  };  
+                  
               
   return _impl;
 }
