@@ -158,10 +158,10 @@ const DEFAULT_SCALE = 42; // why not
 const DEFAULT_AXIS_PADDING = 8;
 
 // Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
-const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500);",
+const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
                         ".axis text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
-                        ".voronoi text{ font-size: 14px; font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 500 }",
-                        ".chart-legends text{ font-size: 14px; font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
+                        ".voronoi text{ font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 500 }",
+                        ".chart-legends text{ font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 300; fill: " + display.text.black + "; }",
                         ".axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; }",
                         "g.axis-v path { stroke: none }",
                         "g.axis-i path, g.axis-i g.tick line { stroke-width: 1.0px; stroke: " + display.text.black + " }",
@@ -209,6 +209,9 @@ export default function lines(id) {
       gridIndex = false,
       fillArea = true,
       language = null,
+      voronoiAttraction = 0.33,
+      animateAxis = true,
+      animateLabels = true,
       axisValue = 'left',
       legendOrientation = 'bottom',
       axisPaddingIndex = DEFAULT_AXIS_PADDING,
@@ -396,7 +399,7 @@ export default function lines(id) {
       
       // Create the legend
       if (legend.length > 0 && legendOrientation !== 'voronoi') {
-        let lchart = legends().width(w).height(h).inset(0).fill(fill).orientation(legendOrientation);
+        let lchart = legends().width(w).height(h).inset(0).fill(fill).orientation(legendOrientation).spacing(7);
 
         _inset = lchart.childInset(_inset);
 
@@ -436,11 +439,8 @@ export default function lines(id) {
       }
 
       let axisTranslate = (axisValue === 'left') ? _inset.left : w - _inset.right;
-      g.select('g.axis-v')
-        .attr('transform', 'translate(' + axisTranslate + ',0)')
-        .call(aV)
-        .selectAll('line')
-          .attr('class', gridValue ? 'grid' : null);
+      let gAxisV = g.select('g.axis-v')
+        .attr('transform', 'translate(' + axisTranslate + ',0)');
 
       let aI = axisBottom(scaleI).tickPadding(axisPaddingIndex);
       if (labelTime != null) {
@@ -463,9 +463,19 @@ export default function lines(id) {
         aI.tickFormat(tickDisplayIndex);
       }   
       
-      g.select('g.axis-i')
-        .attr('transform', 'translate(0,' + (h - _inset.bottom) + ')')
-        .call(aI)
+      let gAxisI = g.select('g.axis-i')
+        .attr('transform', 'translate(0,' + (h - _inset.bottom) + ')');
+        
+      if (transition === true && animateAxis === true) {
+        gAxisV = gAxisV.transition(context);
+        gAxisI = gAxisI.transition(context);
+      }  
+      
+      gAxisV.call(aV)
+        .selectAll('line')
+          .attr('class', gridValue ? 'grid' : null);      
+
+      gAxisI.call(aI)
         .selectAll('line')
           .attr('class', gridIndex ? 'grid' : null);  
           
@@ -500,10 +510,15 @@ export default function lines(id) {
       elmG = elmG.merge(elmGNew);
       
       let elmArea = elmL.selectAll('path.area').data(data.map((d) => fillArea === true ? d : []));
+      let elmStroke = elmL.selectAll('path.stroke').data(data);
+      
+      if (transition === true) {
+        elmArea = elmArea.transition(context);
+        elmStroke = elmStroke.transition(context);
+      }  
       elmArea.attr('d', areas)
               .attr('fill', colors);   
 
-      let elmStroke = elmL.selectAll('path.stroke').data(data);
       elmStroke.attr('d', lines)
                 .attr('stroke', colors);     
 
@@ -530,23 +545,14 @@ export default function lines(id) {
                     .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
                     .polygons(flat);
       
-      const centerI = (scaleI.range()[1] - scaleI.range()[0]) / 2;
-      const UNIT_TO_RAD = Math.PI / 2;
-
-      // larger number, more suitable polygon
-      // the more central (in x), the more suitable
-      function polygonSuitability(d) {
-        let centraility = Math.cos(UNIT_TO_RAD * Math.abs(centerI - polygonCentroid(d)[0]) / centerI);
-        return polygonArea(d) * centraility;
-      }
-                
       let vmesh = g.select('g.voronoi').selectAll('path').data(overlay);
       vmesh.exit().remove();
       vmesh = vmesh.enter().append('path')
               .attr('fill', 'none')
-              .style('pointer-events', 'all');
+              .style('pointer-events', 'all')
+              .merge(vmesh);
               
-      vmesh.attr('d', d => 'M' + d.join('L') + 'Z')
+      vmesh.attr('d', d => d != null ? 'M' + d.join('L') + 'Z' : null)
           .attr('class', (d, i) => 'series-' + seriesFor(i));
 
 // highlight selected entry
@@ -555,20 +561,58 @@ export default function lines(id) {
       let labels = []; 
 
       if (legendOrientation === 'voronoi') {
+        const centerI = (scaleI.range()[1] - scaleI.range()[0]) / 2;
+        const UNIT_TO_RAD = Math.PI / 2;
+
+        function calculatePolygon(d, i) {
+          let c = polygonCentroid(d);
+          // the more central (in x), the more suitable
+          let centraility = Math.cos(UNIT_TO_RAD * Math.abs(centerI - c[0]) / centerI);
+          // a: larger number, more suitable polygon
+          return { a: polygonArea(d) * centraility, s: seriesFor(i), i: i, c: c };
+        }
+        
+        // will drag the text position towards the data point by a funciton of 
+        // voronoiAttraction
+        function calculateTextPosition(centroid, point) {
+          let angle = Math.atan2(centroid[1] - point[1], centroid[0] - point[0]);
+          
+          let x = centroid[0] - point[0];
+          let y = centroid[1] - point[1];
+          
+          let l = Math.sqrt(x*x + y*y);
+
+          return [ centroid[0] - voronoiAttraction*l*Math.cos(angle), centroid[1] - voronoiAttraction*l*Math.sin(angle) ];
+        }
+        
+        let polys = overlay.map(calculatePolygon);
+        
         let candidates = nest()
-                    .key(d => d.s)
+                    .key(d => d != null ? d.s : '')
                     .sortValues((a,b) => descending(a.a, b.a))
-                    .entries(overlay.map((d, i) => ({ a: polygonSuitability(d), s: seriesFor(i), i: i })))
-                    .map(d => d.values[0].i);  
-                          
-        labels = candidates.map(i => polygonCentroid(overlay[i]));
+                    .entries(polys)
+                    .filter(d => d.key !== '')
+                    .map(function (d) {
+                      for (let i=0; i < d.values.length; i++) {
+                        let e = d.values[i];
+                        if (e != null) return e.i;
+                      }
+                      // nothing was an option
+                      return 0;
+                    });  
+        labels = candidates.map(i => calculateTextPosition(polys[i].c, [ scaleI(flat[i][0]), scaleV(flat[i][1]) ]));
       }
       
       let vlabels = g.select('g.voronoi').selectAll('text').data(labels);
       vlabels.exit().remove();
       vlabels = vlabels.enter().append('text')            
             .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'central');
+            .attr('dominant-baseline', 'central')
+            .merge(vlabels);
+
+      if (transition === true && animateLabels === true) {
+        vlabels = vlabels.transition(context);
+      }  
       
       vlabels.attr('x', d => d[0])
             .attr('y', d => d[1])
@@ -743,7 +787,18 @@ export default function lines(id) {
   _impl.legendOrientation = function(value) {
     return arguments.length ? (legendOrientation = value, _impl) : legendOrientation;
   };  
-                  
+
+  _impl.voronoiAttraction = function(value) {
+    return arguments.length ? (voronoiAttraction = value, _impl) : voronoiAttraction;
+  };  
+
+  _impl.animateAxis = function(value) {
+    return arguments.length ? (animateAxis = value, _impl) : animateAxis;
+  };   
+
+  _impl.animateLabels = function(value) {
+    return arguments.length ? (animateLabels = value, _impl) : animateLabels;
+  };                
               
   return _impl;
 }

@@ -35,12 +35,12 @@
     */
     
     var mapping = {
-      'LNU02032201': 'non-routine cognitive', 
-      'LNU02032205': 'routine cognitive', 
-      'LNU02032210': 'routine manual',
-      'LNU02032211': 'routine manual',
-      'LNU02032212': 'routine manual',
-      'LNU02032204': 'non-routine manual'
+      'LNU02032201': 'Non-routine cognitive', 
+      'LNU02032205': 'Routine cognitive', 
+      'LNU02032210': 'Routine manual',
+      'LNU02032211': 'Routine manual',
+      'LNU02032212': 'Routine manual',
+      'LNU02032204': 'Non-routine manual'
     };
     
     
@@ -76,7 +76,7 @@
         
         // emuates year labeling logic from the enonomist
         var ecoYears = (y, i) => (i === 0 || y.getUTCFullYear() % 100 === 0) ? yearFull(y) : yearSmall(y);
-        
+
         var display = d3_rs_lines.html()
                 .labelTime(ecoYears)
                 .width(700)
@@ -85,10 +85,20 @@
                 .niceIndex('false')
                 .axisValue('right')
                 .tickFormatValue('.0s')
-                .legendOrientation('voronoi')
+                .legendOrientation('voronoi') // voronoi
+                .animateAxis(false)
                 .legend(groups);
-        
-        d3.select('#elm').datum(data).call(display);
+
+        function draw(scale, animation) {        
+          var animated = data.map(a => a.map(e => ({ l: e.l, v: e.v * scale }) ) );
+          var node = d3.select('#elm').datum(animated);
+          if (animation === true) {
+            node = node.transition().duration(3000);
+          }
+          node.call(display);
+        }
+        draw(0, false);        
+        draw(1, true);
       })
       .catch(e => console.error(e.stack));
 
