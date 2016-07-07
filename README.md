@@ -61,3 +61,4 @@ Property|Description|Transition|Preview
 `tickDisplayIndex`, `tickDisplayValue`|
 `curve`|*String, Function*, https://github.com/d3/d3-shape#curves, excluding closed and open curves. If a function is supplied, it should implement https://github.com/d3/d3-shape#custom-curves
 `symbol`|*(Array of) String, Function* https://github.com/d3/d3-shape#symbolCircle or https://github.com/d3/d3-shape#custom-symbol-types
+`legendOrientation`|*String* top, left, bottom, right, voronoi

@@ -395,7 +395,7 @@ export default function lines(id) {
           h = root.childHeight();
       
       // Create the legend
-      if (legend.length > 0) {
+      if (legend.length > 0 && legendOrientation !== 'voronoi') {
         let lchart = legends().width(w).height(h).inset(0).fill(fill).orientation(legendOrientation);
 
         _inset = lchart.childInset(_inset);
@@ -499,7 +499,7 @@ export default function lines(id) {
       elmGNew.append('g').attr('class', 'symbols');
       elmG = elmG.merge(elmGNew);
       
-      let elmArea = elmL.selectAll('path.area').data(data.map((d,i) => fillArea === true ? d : []));
+      let elmArea = elmL.selectAll('path.area').data(data.map((d) => fillArea === true ? d : []));
       elmArea.attr('d', areas)
               .attr('fill', colors);   
 
@@ -526,7 +526,7 @@ export default function lines(id) {
       let flat = data.reduce((p, a) => (indexs.push(p.length), p.concat(a)), []);
       let overlay = voronoi()
                     .x(d => scaleI(d[0]))
-	                  .y(d => scaleV(d[1]))
+                    .y(d => scaleV(d[1]))
                     .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
                     .polygons(flat);
       
@@ -539,30 +539,39 @@ export default function lines(id) {
         let centraility = Math.cos(UNIT_TO_RAD * Math.abs(centerI - polygonCentroid(d)[0]) / centerI);
         return polygonArea(d) * centraility;
       }
-      
-      let candidates = nest()
+                
+      let vmesh = g.select('g.voronoi').selectAll('path').data(overlay);
+      vmesh.exit().remove();
+      vmesh = vmesh.enter().append('path')
+              .attr('fill', 'none')
+              .style('pointer-events', 'all');
+              
+      vmesh.attr('d', d => 'M' + d.join('L') + 'Z')
+          .attr('class', (d, i) => 'series-' + seriesFor(i));
+
+// highlight selected entry
+//            .attr('fill', (d, i) => (candidates.indexOf(i) === -1) ? 'none' : 'red')
+        
+      let labels = []; 
+
+      if (legendOrientation === 'voronoi') {
+        let candidates = nest()
                     .key(d => d.s)
                     .sortValues((a,b) => descending(a.a, b.a))
                     .entries(overlay.map((d, i) => ({ a: polygonSuitability(d), s: seriesFor(i), i: i })))
-                    .map(d => d.values[0].i);    
-                
-      console.log(candidates);
-      g.select('g.voronoi').selectAll('path').data(overlay)
-            .enter().append('path')
-              .attr('d', (d, i) => 'M' + d.join('L') + 'Z')
-              .attr('class', (d, i) => 'series-' + seriesFor(i))
-              .attr('fill', 'none')
-              .style('pointer-events', 'all');
-// highlight selected entry
-//            .attr('fill', (d, i) => (candidates.indexOf(i) === -1) ? 'none' : 'red')
-              
-      let labels = candidates.map(i => polygonCentroid(overlay[i]));
-      g.select('g.voronoi').selectAll('text').data(labels)
-            .enter().append('text')
-            .attr('x', d => d[0])
-            .attr('y', d => d[1])
+                    .map(d => d.values[0].i);  
+                          
+        labels = candidates.map(i => polygonCentroid(overlay[i]));
+      }
+      
+      let vlabels = g.select('g.voronoi').selectAll('text').data(labels);
+      vlabels.exit().remove();
+      vlabels = vlabels.enter().append('text')            
             .attr('text-anchor', 'middle')
-            .attr('dominant-baseline', 'central')
+            .attr('dominant-baseline', 'central');
+      
+      vlabels.attr('x', d => d[0])
+            .attr('y', d => d[1])
             .attr('fill', colors)
             .text((d, i) => i < legend.length ? legend[i] : '');
     });
