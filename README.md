@@ -56,10 +56,19 @@ Property|Description|Transition|Preview
 `width`, `height`, `size`, `scale`|*Integer* SVG container sizes|Y
 `style`|*String* Custom CSS to inject into chart|N
 `minValue`,`maxValue`|*Number* Sets the minimum and maximum Value scale range. Note that for log scales, minValue must be > 0.|Y
-`tickCountIndex`,`tickCountValue`|*Number, String* Hints at the number of ticks to set in the corresponding axis. Supports strings, https://github.com/d3/d3-time#intervals
-`tickFormatIndex`, `tickFormatValue`|*String, Function*
-`tickDisplayIndex`, `tickDisplayValue`|
+`tickCountIndex`,`tickCountValue`|*Number, String, Interval Function* Hints at the number of ticks to set in the corresponding axis. Supports strings for example (time intervals)[https://github.com/d3/d3-time#intervals]
+`tickMinorIndex`, `tickMinorValue`|*Number, String, Interval Function* Hints at the number of minor ticks to set in the corresponding axis.
+`tickFormatIndex`, `tickFormatValue`|*String, Function* Sets the formatting string or function for the ticks
+`tickDisplayIndex`, `tickDisplayValue`|*Function* Alternatively you can customise all tick presentation logic with this function
 `curve`|*String, Function*, https://github.com/d3/d3-shape#curves, excluding closed and open curves. If a function is supplied, it should implement https://github.com/d3/d3-shape#custom-curves
 `symbol`|*(Array of) String, Function* https://github.com/d3/d3-shape#symbolCircle or https://github.com/d3/d3-shape#custom-symbol-types
 `legendOrientation`|*String* top, left, bottom, right, voronoi
 `voronoiAttraction`|*Number -1...0...1* When using the voronoi legendOrientation, how far the label is dragged to the data line. 0 implies no dragging, -1 pushes the labels away
+
+### Time
+
+TODO: Explain string use and intervals like `utcDecade`;
+
+TODO: `timeMultiFormat`
+
+TODO: Discuss `timeMultiFormat` and `tickCountIndex` with relation to UTC

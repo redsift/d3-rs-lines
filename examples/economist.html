@@ -71,14 +71,9 @@
                 .map(v => v.value.map(d => ({ l: parseDate(d.key), v: d.value * 1000 })));
       })
       .then(function (data) {
-        var yearFull = d3.timeFormat('%Y');
-        var yearSmall = d3.timeFormat('%y');        
-        
-        // emuates year labeling logic from the enonomist
-        var ecoYears = (y, i) => (i === 0 || y.getUTCFullYear() % 100 === 0) ? yearFull(y) : yearSmall(y);
 
         var display = d3_rs_lines.html()
-                .labelTime(ecoYears)
+                .labelTime(d3_rs_lines.timeMultiFormat())
                 .width(700)
                 .height(400)
                 .fillArea(null)
@@ -86,7 +81,9 @@
                 .axisValue('right')
                 .tickFormatValue('.0s')
                 .legendOrientation('voronoi') // voronoi
-                .animateAxis(false)
+                .animateAxis(true)
+                .tickMinorIndex(null)
+                .maxIndex(631148400 * 1000)
                 .legend(groups);
 
         function draw(scale, animation) {        

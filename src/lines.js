@@ -73,52 +73,52 @@ import {
   display as display
 } from '@redsift/d3-rs-theme';
 
-const intervals = {
+export const intervals = {
   timeMillisecond: [timeMillisecond, 1],
   timeTnMillisecond: [timeMillisecond, 10],
   timeHnMillisecond: [timeMillisecond, 100],
-  utcMillisecond: [utcMillisecond, 1],
-  utcTnMillisecond: [utcMillisecond, 10],
-  utcHnMillisecond: [utcMillisecond, 100],
   timeSecond: [timeSecond, 1],
   timeTnSecond: [timeSecond, 10],
-  utcSecond: [utcSecond, 1],
-  utcTnSecond: [utcSecond, 10],
   timeMinute: [timeMinute, 1],
-  utcMinute: [utcMinute, 1],
   timeHour: [timeHour, 1],
-  utcHour: [utcHour, 1],
   timeDay: [timeDay, 1],
   timeBiDay: [timeDay, 2],  
-  utcDay: [utcDay, 1],
-  utcBiDay: [utcDay, 2],
   timeSunday: [timeSunday, 1],
-  utcSunday: [utcSunday, 1],
   timeMonday: [timeMonday, 1],
-  utcMonday: [utcMonday, 1],
   timeTuesday: [timeTuesday, 1],
-  utcTuesday: [utcTuesday, 1],
   timeWednesday: [timeWednesday, 1],
-  utcWednesday: [utcWednesday, 1],
   timeThursday: [timeThursday, 1],
-  utcThursday: [utcThursday, 1],
   timeFriday: [timeFriday, 1],
-  utcFriday: [utcFriday, 1],
   timeSaturday: [timeSaturday, 1],
-  utcSaturday: [utcSaturday, 1],
   timeWeek: [timeWeek, 1],
   timeBiWeek: [timeWeek, 2],
-  utcWeek: [utcWeek, 1],
-  utcBiWeek: [utcWeek, 2],
   timeMonth: [timeMonth, 1],
   timeBiMonth: [timeMonth, 2],
-  timeQtMonth: [timeMonth, 3],
-  utcMonth: [utcMonth, 1],
-  utcBiMonth: [utcMonth, 2],
-  utcTrMonth: [utcMonth, 3],
+  timeQtYear: [timeMonth, 3],
   timeYear: [timeYear, 1],
   timeBiYear: [timeYear, 2],
   timeDecade: [timeYear, 10],
+  utcMillisecond: [utcMillisecond, 1],
+  utcTnMillisecond: [utcMillisecond, 10],
+  utcHnMillisecond: [utcMillisecond, 100],
+  utcSecond: [utcSecond, 1],
+  utcTnSecond: [utcSecond, 10],
+  utcMinute: [utcMinute, 1],
+  utcHour: [utcHour, 1],
+  utcDay: [utcDay, 1],
+  utcBiDay: [utcDay, 2],
+  utcSunday: [utcSunday, 1],
+  utcMonday: [utcMonday, 1],
+  utcTuesday: [utcTuesday, 1],
+  utcWednesday: [utcWednesday, 1],
+  utcThursday: [utcThursday, 1],
+  utcFriday: [utcFriday, 1],
+  utcSaturday: [utcSaturday, 1],
+  utcWeek: [utcWeek, 1],
+  utcBiWeek: [utcWeek, 2],
+  utcMonth: [utcMonth, 1],
+  utcBiMonth: [utcMonth, 2],
+  utcQtYear: [utcMonth, 3],
   utcYear: [utcYear, 1],
   utcBiYear: [utcYear, 2],
   utcDecade: [utcYear, 10]
@@ -147,6 +147,47 @@ const symbols = {
   symbolWye: symbolWye  
 }
 
+// If localtime, the dates are assumed to be boundaries in localtime
+export function timeMultiFormat(localtime) {
+  let second = utcSecond,
+      minute = utcMinute,
+      hour = utcHour,
+      day = utcDay,
+      week = utcWeek,
+      month = utcMonth,
+      year = utcYear;
+      
+  if (localtime === true) {
+    second = timeSecond;
+    minute = timeMinute;
+    hour = timeHour;
+    day = timeDay;
+    week = timeWeek;
+    month = timeMonth;
+    year = timeYear;  
+  }
+  return function (date, i) {
+    let formatMillisecond = timeFormat(".%L"),
+        formatSecond = timeFormat(":%S"),
+        formatMinute = timeFormat("%I:%M"),
+        formatHour = timeFormat("%I %p"),
+        formatDay = timeFormat("%a %d"),
+        formatWeek = timeFormat("%b %d"),
+        formatMonth = timeFormat("%B"),
+        formatYear = timeFormat("%Y"),
+        formatShortYear = timeFormat("%y");
+
+    return (second(date) < date ? formatMillisecond
+        : minute(date) < date ? formatSecond
+        : hour(date) < date ? formatMinute
+        : day(date) < date ? formatHour
+        : month(date) < date ? (week(date) < date ? formatDay : formatWeek)
+        : year(date) < date ? formatMonth
+        : (i === 0 || date.getUTCFullYear() % 100 === 0) ? formatYear
+        : formatShortYear)(date);
+  }
+}
+
 
 const DEFAULT_SIZE = 420;
 const DEFAULT_ASPECT = 160 / 420;
@@ -156,6 +197,9 @@ const DEFAULT_TICK_COUNT = 4;
 const DEFAULT_SYMBOL_SIZE = 32;
 const DEFAULT_SCALE = 42; // why not
 const DEFAULT_AXIS_PADDING = 8;
+const DEFAULT_MAJOR_TICK_SIZE = 8;
+const DEFAULT_MINOR_TICK_SIZE = 4;
+
 
 // Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
 const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
@@ -164,7 +208,9 @@ const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Sou
                         ".chart-legends text{ font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 300; fill: " + display.text.black + "; }",
                         ".axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; }",
                         "g.axis-v path { stroke: none }",
-                        "g.axis-i path, g.axis-i g.tick line { stroke-width: 1.0px; stroke: " + display.text.black + " }",
+                        "g.axis-v-minor path { stroke: none }",
+                        "g.axis-i path, g.axis-i g.tick line, g.axis-i-minor g.tick line { stroke-width: 1.0px; stroke: " + display.text.black + " }",
+                        "g.axis-i-minor path { stroke: none }",
                         "line { stroke-width: 1.5px }",
                         "line.grid, g.axis-i g.tick line.grid { stroke-width: 2.0px; stroke-dasharray: 2,2; stroke: " + display.lines.seperator + " }",
                         ".legend text { font-size: 12px }",
@@ -203,6 +249,8 @@ export default function lines(id) {
       tickDisplayIndex = null,
       tickCountValue = DEFAULT_TICK_COUNT,
       tickCountIndex = null,
+      tickMinorValue = null,
+      tickMinorIndex = null,
       niceValue = true,
       niceIndex = true,
       gridValue = true,
@@ -272,18 +320,32 @@ export default function lines(id) {
   function _map(map) {
     return function (c) {
       if (c == null) return null;
-      // TODO: does not seem to behave
+
       if (typeof c === 'string') {
         return map[c];
       }
+
       return c;
     }
   }
   
   let _mapCurve = _map(curves);
   let _mapSymbols = _map(symbols);
-  let _mapIntervalTickCount = _map(intervals);
- 
+  let _fnIntervals = _map(intervals);
+  let _mapIntervalTickCount = function (c) {
+    
+    let o = _fnIntervals(c);
+    if (o == null) {
+      return [];
+    }
+    
+    if (!Array.isArray(o)) {
+      return [ c ];  
+    }
+    
+    return o;
+  }
+  
   function _makeFillFn() {
     let colors = () => fill;
     if (fill == null) {
@@ -346,7 +408,9 @@ export default function lines(id) {
       let g = elmS.select(_impl.self())
       if (g.empty()) {
         g = elmS.append('g').attr('class', classed).attr('id', id);
+        g.append('g').attr('class', 'axis-v-minor axis');
         g.append('g').attr('class', 'axis-v axis');
+        g.append('g').attr('class', 'axis-i-minor axis');
         g.append('g').attr('class', 'axis-i axis');
         g.append('g').attr('class', 'legend');
         g.append('g').attr('class', 'lines');
@@ -433,14 +497,22 @@ export default function lines(id) {
                   .ticks(tickCountValue, (formatValue == null ? scaleV.tickFormat(tickCountValue) : formatValue));
       if (gridValue === true) {
         aV.tickSizeInner((_inset.left + _inset.right) - w);
+      } else {
+        aV.tickSizeInner(DEFAULT_MAJOR_TICK_SIZE);
       }
       if (tickDisplayValue) {
         aV.tickFormat(tickDisplayValue);
       }
-
+      
+      let aVMinor = null;
+      if (tickMinorValue !== null) {
+        aVMinor = axis(scaleV).ticks(tickMinorValue).tickSizeInner(DEFAULT_MINOR_TICK_SIZE).tickFormat(() => undefined);
+      }
       let axisTranslate = (axisValue === 'left') ? _inset.left : w - _inset.right;
       let gAxisV = g.select('g.axis-v')
         .attr('transform', 'translate(' + axisTranslate + ',0)');
+      let gAxisVMinor = g.select('g.axis-v-minor')
+        .attr('transform', 'translate(' + axisTranslate + ',0)'); 
 
       let aI = axisBottom(scaleI).tickPadding(axisPaddingIndex);
       if (labelTime != null) {
@@ -458,18 +530,46 @@ export default function lines(id) {
       }
       if (gridIndex === true) {
         aI.tickSizeInner((_inset.top + _inset.bottom) - h);
+      } else {
+        aI.tickSizeInner(DEFAULT_MAJOR_TICK_SIZE);
       }  
       if (tickDisplayIndex != null) {
         aI.tickFormat(tickDisplayIndex);
       }   
       
+      let aIMinor = null;
+      if (tickMinorIndex !== null) {
+        let density = tickMinorIndex;
+        if (labelTime != null) {
+          density = _mapIntervalTickCount(tickMinorIndex);
+        }
+        aIMinor = axisBottom(scaleI).tickArguments(density).tickSizeInner(DEFAULT_MINOR_TICK_SIZE).tickFormat(() => undefined);
+      }
+            
       let gAxisI = g.select('g.axis-i')
         .attr('transform', 'translate(0,' + (h - _inset.bottom) + ')');
-        
+      
+      let gAxisIMinor = g.select('g.axis-i-minor')
+        .attr('transform', 'translate(0,' + (h - _inset.bottom) + ')');
+                
       if (transition === true && animateAxis === true) {
+        gAxisVMinor = gAxisVMinor.transition(context);
+        gAxisIMinor = gAxisIMinor.transition(context);
         gAxisV = gAxisV.transition(context);
         gAxisI = gAxisI.transition(context);
       }  
+
+      if (aIMinor !== null) {
+        gAxisIMinor.call(aIMinor);    
+      } else {
+        gAxisIMinor.selectAll('*').remove();
+      }
+      
+      if (aVMinor !== null) {
+        gAxisVMinor.call(aVMinor);    
+      } else {
+        gAxisVMinor.selectAll('*').remove();
+      }
       
       gAxisV.call(aV)
         .selectAll('line')
@@ -481,7 +581,8 @@ export default function lines(id) {
           
       let lines = line()
         .x(d => scaleI(d[0]))
-        .y(d => scaleV(d[1]));
+        .y(d => scaleV(d[1]))
+        .defined(d => scaleI(d[0]) < (w - _inset.right) && scaleV(d[1]) > _inset.top);
       
       let areas = area()
           .x(d => scaleI(d[0]))
@@ -699,6 +800,22 @@ export default function lines(id) {
   _impl.tickDisplayIndex = function(value) {
     return arguments.length ? (tickDisplayIndex = value, _impl) : tickDisplayIndex;
   };   
+  
+  _impl.tickCountValue = function(value) {
+    return arguments.length ? (tickCountValue = value, _impl) : tickCountValue;
+  }; 
+   
+  _impl.tickCountIndex = function(value) {
+    return arguments.length ? (tickCountIndex = value, _impl) : tickCountIndex;
+  };    
+
+  _impl.tickMinorValue = function(value) {
+    return arguments.length ? (tickMinorValue = value, _impl) : tickMinorValue;
+  };   
+  
+  _impl.tickMinorIndex = function(value) {
+    return arguments.length ? (tickMinorIndex = value, _impl) : tickMinorIndex;
+  };   
 
   _impl.style = function(value) {
     return arguments.length ? (style = value, _impl) : style;
@@ -719,14 +836,6 @@ export default function lines(id) {
   _impl.labelTime = function(value) {
     return arguments.length ? (labelTime = value, _impl) : labelTime;
   };   
-  
-  _impl.tickCountValue = function(value) {
-    return arguments.length ? (tickCountValue = value, _impl) : tickCountValue;
-  }; 
-   
-  _impl.tickCountIndex = function(value) {
-    return arguments.length ? (tickCountIndex = value, _impl) : tickCountIndex;
-  };     
   
   _impl.displayTip = function(value) {
     return arguments.length ? (displayTip = value, _impl) : displayTip;
