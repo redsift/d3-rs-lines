@@ -215,7 +215,7 @@ const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Sou
                         "line.grid, g.axis-i g.tick line.grid { stroke-width: 2.0px; stroke-dasharray: 2,2; stroke: " + display.lines.seperator + " }",
                         ".legend text { font-size: 12px }",
                         "path.stroke { stroke-width: 2.5px }",
-                        "path.area { opacity: 0.33 }",
+                /*        "path.area { opacity: 0.33 }", */
                         ".voronoi path { stroke: none }",
                         ".highlight { opacity: 0.66 }",
                         ".highlight text { font-size: 12px }"
@@ -255,6 +255,7 @@ export default function lines(id) {
       niceIndex = true,
       gridValue = true,
       gridIndex = false,
+      fillOpacity = 0.33,
       fillArea = true,
       language = null,
       voronoiAttraction = 0.33,
@@ -392,7 +393,7 @@ export default function lines(id) {
       
       let _inset = inset;
       if (_inset == null) {
-        _inset = { top: 0, bottom: DEFAULT_INSET, left: 0, right: 0 };
+        _inset = { top: 0, bottom: DEFAULT_INSET + DEFAULT_MAJOR_TICK_SIZE, left: 0, right: 0 };
         if (axisValue === 'left') {
           _inset.left = DEFAULT_INSET;
         } else {
@@ -430,6 +431,18 @@ export default function lines(id) {
           data = _flatArrays(data.map((d, i) => value(d, i, false)));          
         }
       }
+          
+      let fdata = [];
+      if (!Array.isArray(fillArea)) {
+        fdata = data.map(d => fillArea === true ? d : []);
+      } else {
+        fdata = data.map(function (d, i) {
+          if (i < fillArea.length) {
+            return fillArea[i] === true ? d : [];
+          }
+          return [];
+        });
+      }
 
       g.datum(data); // this rebind is required even though there is a following select
 
@@ -460,10 +473,12 @@ export default function lines(id) {
                        
       let w = root.childWidth(),
           h = root.childHeight();
+            
+      let colors = _makeFillFn();
       
       // Create the legend
       if (legend.length > 0 && legendOrientation !== 'voronoi') {
-        let lchart = legends().width(w).height(h).inset(0).fill(fill).orientation(legendOrientation).spacing(7);
+        let lchart = legends().width(w).height(h).inset(0).fill(colors).orientation(legendOrientation).spacing(7);
 
         _inset = lchart.childInset(_inset);
 
@@ -522,6 +537,8 @@ export default function lines(id) {
         }
         if (typeof labelTime === 'function') {
           aI.tickFormat(labelTime);          
+        } else if (labelTime === 'multi') {
+          aI.tickFormat(timeMultiFormat());       
         } else {
           aI.tickFormat(timeFormat(labelTime));          
         }
@@ -578,24 +595,25 @@ export default function lines(id) {
       gAxisI.call(aI)
         .selectAll('line')
           .attr('class', gridIndex ? 'grid' : null);  
-          
+      
+      // Note: A lot of scaleI, scaleV calls.    
       let lines = line()
         .x(d => scaleI(d[0]))
         .y(d => scaleV(d[1]))
-        .defined(d => scaleI(d[0]) < (w - _inset.right) && scaleV(d[1]) > _inset.top);
-      
+        .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1]) >= _inset.top);
+
       let areas = area()
+          .y0(h - _inset.bottom)
           .x(d => scaleI(d[0]))
-          .y0(h)
-          .y1(d => scaleV(d[1]));      
+          .y1(d => scaleV(d[1]))
+          .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1]) >= _inset.top);      
       
       let cv = _mapCurve(curve);
       if (cv != null) {  
         lines.curve(cv);  
         areas.curve(cv);
       }
-      
-      let colors = _makeFillFn();
+
    
       let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
       let sym = data.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : null);
@@ -610,7 +628,7 @@ export default function lines(id) {
       elmGNew.append('g').attr('class', 'symbols');
       elmG = elmG.merge(elmGNew);
       
-      let elmArea = elmL.selectAll('path.area').data(data.map((d) => fillArea === true ? d : []));
+      let elmArea = elmL.selectAll('path.area').data(fdata);
       let elmStroke = elmL.selectAll('path.stroke').data(data);
       
       if (transition === true) {
@@ -618,17 +636,18 @@ export default function lines(id) {
         elmStroke = elmStroke.transition(context);
       }  
       elmArea.attr('d', areas)
-              .attr('fill', colors);   
+              .attr('opacity', fillOpacity)
+              .attr('fill', (d,i) => colors(d, i, 'area'));   
 
       elmStroke.attr('d', lines)
-                .attr('stroke', colors);     
+                .attr('stroke', (d,i) => colors(d, i, 'stroke'));     
 
       let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => sym[i] != null ? d.map(function (v) { return { v : v, i : i }; }) : []);
       eS.exit().remove();
       eS = eS.enter().append('path').merge(eS);
       eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+scaleV(d.v[1])+')')
         .attr('d', (d) => sym[d.i](d.v, d.i))
-        .attr('fill', d => colors(d.v, d.i))
+        .attr('fill', d => colors(d.v, d.i, 'symbol'))
         .attr('stroke', 'none');  
       
       let indexs = [];
@@ -717,7 +736,7 @@ export default function lines(id) {
       
       vlabels.attr('x', d => d[0])
             .attr('y', d => d[1])
-            .attr('fill', colors)
+            .attr('fill', (d,i) => colors(d,i,'legend'))
             .text((d, i) => i < legend.length ? legend[i] : '');
     });
     
@@ -879,7 +898,11 @@ export default function lines(id) {
 
   _impl.fillArea = function(value) {
     return arguments.length ? (fillArea = value, _impl) : fillArea;
-  };              
+  };    
+  
+  _impl.fillOpacity = function(value) {
+    return arguments.length ? (fillOpacity = value, _impl) : fillOpacity;
+  };    
   
   _impl.axisValue = function(value) {
     return arguments.length ? (axisValue = value, _impl) : axisValue;
