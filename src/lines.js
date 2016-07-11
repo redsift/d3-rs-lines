@@ -665,7 +665,7 @@ export default function lines(id) {
         const centerI = (scaleI.range()[1] - scaleI.range()[0]) / 2;
         const UNIT_TO_RAD = Math.PI / 2;
 
-        function calculatePolygon(d, i) {
+        let calculatePolygon = function(d, i) {
           let c = polygonCentroid(d);
           // the more central (in x), the more suitable
           let centraility = Math.cos(UNIT_TO_RAD * Math.abs(centerI - c[0]) / centerI);
@@ -675,7 +675,7 @@ export default function lines(id) {
         
         // will drag the text position towards the data point by a funciton of 
         // voronoiAttraction
-        function calculateTextPosition(centroid, point) {
+        let calculateTextPosition = function(centroid, point) {
           let angle = Math.atan2(centroid[1] - point[1], centroid[0] - point[0]);
           
           let x = centroid[0] - point[0];

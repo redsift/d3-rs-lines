@@ -83,7 +83,6 @@
                 .legendOrientation('voronoi') // voronoi
                 .animateAxis(true)
                 .tickMinorIndex(null)
-                .maxIndex(631148400 * 1000)
                 .legend(groups);
 
         function draw(scale, animation) {        
@@ -94,7 +93,7 @@
           }
           node.call(display);
         }
-        draw(0, false);        
+        draw(0, false);     
         draw(1, true);
       })
       .catch(e => console.error(e.stack));
