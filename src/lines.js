@@ -1,6 +1,6 @@
 
 import { select } from 'd3-selection';
-import { line, area, symbol } from 'd3-shape';
+import { line, area, symbol, stack } from 'd3-shape';
 import { max, min, descending } from 'd3-array';
 import { scaleLinear, scaleLog, scaleTime } from 'd3-scale';
 import { axisBottom, axisLeft, axisRight } from 'd3-axis';
@@ -199,6 +199,7 @@ const DEFAULT_SCALE = 42; // why not
 const DEFAULT_AXIS_PADDING = 8;
 const DEFAULT_MAJOR_TICK_SIZE = 8;
 const DEFAULT_MINOR_TICK_SIZE = 4;
+const DEFAULT_FILL_OPACITY = 0.33;
 
 
 // Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
@@ -255,9 +256,11 @@ export default function lines(id) {
       niceIndex = true,
       gridValue = true,
       gridIndex = false,
-      fillOpacity = 0.33,
-      fillArea = true,
+      fillOpacity = null,
+      fillArea = null,
+      fillStroke = null,
       language = null,
+      stacked = null,
       voronoiAttraction = 0.33,
       animateAxis = true,
       animateLabels = true,
@@ -366,6 +369,22 @@ export default function lines(id) {
    
     formatDefaultLocale(units(language).d3);
     timeFormatDefaultLocale(time(language).d3);
+
+      
+   let _fillOpacity = fillOpacity,
+      _fillArea = fillArea,
+      _fillStroke = fillStroke;
+    
+    if (stacked !== null && stacked !== false) {
+      if (_fillOpacity == null) _fillOpacity = 1.0;
+      if (_fillArea == null) _fillArea = true;
+      if (_fillStroke == null) _fillStroke = false;      
+    } else {
+      if (_fillOpacity == null) _fillOpacity = DEFAULT_FILL_OPACITY;
+      if (_fillArea == null) _fillArea = true;
+      if (_fillStroke == null) _fillStroke = true;         
+    }
+
       
     selection.each(function() {
       let node = select(this);  
@@ -425,30 +444,47 @@ export default function lines(id) {
       }
       
       if (data.length > 0) {
-        if (Array.isArray(data[0])) {
-          data = data.map(a => a.map((d, i) => value(d,i, true)));
+        if (stacked !== null && stacked !== false) {
+          let stacker = stack();
+          
+          if (stacked === true) {
+            stacker.keys(data[0].v.map((d,i) => i)).value((d,k) => d.v[k]);
+          } else {
+            stacker.keys(stacked);
+          }
+          data = stacker(data).map(s => s.map(v => [ v.data.l, v ]));
+        } else if (Array.isArray(data[0])) {
+          data = data.map(a => a.map((d, i) => value(d, i, true))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );
         } else {
-          data = _flatArrays(data.map((d, i) => value(d, i, false)));          
+          data = _flatArrays(data.map((d, i) => value(d, i, false))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );          
         }
       }
-          
-      let fdata = [];
-      if (!Array.isArray(fillArea)) {
-        fdata = data.map(d => fillArea === true ? d : []);
-      } else {
-        fdata = data.map(function (d, i) {
-          if (i < fillArea.length) {
-            return fillArea[i] === true ? d : [];
-          }
-          return [];
-        });
+
+      let _mapData = function(option) {
+        let out = [];
+        if (!Array.isArray(option)) {
+          out = data.map(d => option === true ? d : []);
+        } else {
+          out = data.map(function (d, i) {
+            if (i < option.length) {
+              return option[i] === true ? d : [];
+            }
+            return [];
+          });
+        }
+        return out;
       }
+                
+      let fdata = _mapData(_fillArea);
+      
+      let sdata = _mapData(_fillStroke);
+      
 
       g.datum(data); // this rebind is required even though there is a following select
 
       let minV = minValue;
       if (minV == null) {
-        minV = min(data, d => min(d, d1 => d1[1]));
+        minV = min(data, d => min(d, d1 => min(d1[1]) ));
         if (minV > 0) {
           minV = logValue === 0 ? 0 : 1;
         }
@@ -456,7 +492,7 @@ export default function lines(id) {
             
       let maxV = maxValue;
       if (maxV == null) {
-        maxV = max(data, d => max(d, d1 => d1[1]));
+        maxV = max(data, d => max(d, d1 => max(d1[1]) ));
       }
       
       let minI = minIndex;
@@ -599,14 +635,14 @@ export default function lines(id) {
       // Note: A lot of scaleI, scaleV calls.    
       let lines = line()
         .x(d => scaleI(d[0]))
-        .y(d => scaleV(d[1]))
-        .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1]) >= _inset.top);
+        .y(d => scaleV(d[1][1]))
+        .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);
 
       let areas = area()
-          .y0(h - _inset.bottom)
           .x(d => scaleI(d[0]))
-          .y1(d => scaleV(d[1]))
-          .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1]) >= _inset.top);      
+          .y0(d => scaleV(d[1][0])) // bottom
+          .y1(d => scaleV(d[1][1])) // top
+          .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);      
       
       let cv = _mapCurve(curve);
       if (cv != null) {  
@@ -629,14 +665,14 @@ export default function lines(id) {
       elmG = elmG.merge(elmGNew);
       
       let elmArea = elmL.selectAll('path.area').data(fdata);
-      let elmStroke = elmL.selectAll('path.stroke').data(data);
-      
+      let elmStroke = elmL.selectAll('path.stroke').data(sdata);
+
       if (transition === true) {
         elmArea = elmArea.transition(context);
         elmStroke = elmStroke.transition(context);
       }  
       elmArea.attr('d', areas)
-              .attr('opacity', fillOpacity)
+              .attr('opacity', _fillOpacity)
               .attr('fill', (d,i) => colors(d, i, 'area'));   
 
       elmStroke.attr('d', lines)
@@ -645,7 +681,7 @@ export default function lines(id) {
       let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => sym[i] != null ? d.map(function (v) { return { v : v, i : i }; }) : []);
       eS.exit().remove();
       eS = eS.enter().append('path').merge(eS);
-      eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+scaleV(d.v[1])+')')
+      eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+scaleV(d.v[1][1])+')')
         .attr('d', (d) => sym[d.i](d.v, d.i))
         .attr('fill', d => colors(d.v, d.i, 'symbol'))
         .attr('stroke', 'none');  
@@ -661,7 +697,7 @@ export default function lines(id) {
       let flat = data.reduce((p, a) => (indexs.push(p.length), p.concat(a)), []);
       let overlay = voronoi()
                     .x(d => scaleI(d[0]))
-                    .y(d => scaleV(d[1]))
+                    .y(d => scaleV(d[1][1]))
                     .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
                     .polygons(flat);
       
@@ -720,7 +756,7 @@ export default function lines(id) {
                       // nothing was an option
                       return 0;
                     });  
-        labels = candidates.map(i => calculateTextPosition(polys[i].c, [ scaleI(flat[i][0]), scaleV(flat[i][1]) ]));
+        labels = candidates.map(i => calculateTextPosition(polys[i].c, [ scaleI(flat[i][0]), scaleV(flat[i][1][1]) ]));
       }
       
       let vlabels = g.select('g.voronoi').selectAll('text').data(labels);
@@ -892,6 +928,10 @@ export default function lines(id) {
     return arguments.length ? (symbolSize = value, _impl) : symbolSize;
   };    
   
+  _impl.stacked = function(value) {
+    return arguments.length ? (stacked = value, _impl) : stacked;
+  };  
+    
   _impl.fill = function(value) {
     return arguments.length ? (fill = value, _impl) : fill;
   };    
@@ -899,8 +939,12 @@ export default function lines(id) {
   _impl.fillArea = function(value) {
     return arguments.length ? (fillArea = value, _impl) : fillArea;
   };    
+
+  _impl.fillStroke = function(value) {
+    return arguments.length ? (fillStroke = value, _impl) : fillStroke;
+  };    
   
-  _impl.fillOpacity = function(value) {
+  _impl.fillAreaOpacity = function(value) {
     return arguments.length ? (fillOpacity = value, _impl) : fillOpacity;
   };    
   

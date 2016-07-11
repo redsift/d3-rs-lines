@@ -473,11 +473,39 @@
                           .curve('curveStep')
                           .language('fr')
                           .fillArea([ true, false ])
+                          .fillStroke([ false, true ])
                           .tickFormatValue('($.0f');
                       
     d3.select('#elm').datum(TIMES).call(bars);
+                  
+    let stacks = d3_rs_lines.html('stacked')
+                          .width(700) // scale it up
+                          .tickCountIndex('utcMonth') // want monthly ticks
+                          .labelTime('multi') // use the smart formatter
+                          .legend([ 'A', 'B' ]) // add the legend
+                          .curve('curveStep')
+                          .language('fr')
+                          .stacked(true) // boolean or array of object keys
+                          .niceIndex(false)
+                          .tickFormatValue('($.0f');
                       
-    
+    d3.select('#elm')
+      .datum(TIMES) 
+        .call(stacks);
+
+    let curves = d3_rs_lines.html('curved')
+                          .width(700) // scale it up
+                          .tickCountIndex('utcMonth') // want monthly ticks
+                          .labelTime('multi') // use the smart formatter
+                          .legend([ 'A', 'B' ]) // add the legend
+                          .stacked(true) // boolean or array of object keys
+                          .niceIndex(false)
+                          .tickFormatValue('($.0f');
+                      
+    d3.select('#elm')
+      .datum(TIMES) 
+        .call(curves);
+     
     let area = d3_rs_lines.html('basic-time')
                     .scale(2)
                     .labelTime('%d-%b')

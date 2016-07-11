@@ -65,6 +65,8 @@ Property|Description|Transition|Preview
 `legendOrientation`|*String* top, left, bottom, right, voronoi
 `voronoiAttraction`|*Number -1...0...1* When using the voronoi legendOrientation, how far the label is dragged to the data line. 0 implies no dragging, -1 pushes the labels away
 `fill`|*String, Array, Function* If function, in addition to usual *data*, *index* parameters, a 3rd string parameter indicates the context - one of `area`, `stroke`, `symbol`, `legend`   
+`fillAreaOpacity`|*Unit Number* 
+`fillArea`, `fillStroke`|*Boolean, Array[Boolean]* Sets if the lines should be filled or stroked. By default is set appropriately for line and stack presentation
 
 ### Time
 
