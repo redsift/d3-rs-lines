@@ -12,6 +12,7 @@
     <div id="elm"></div>
         
     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="//static.redsift.io/reusable/d3-rs-theme/latest/d3-rs-theme.umd-es2015.min.js"></script>
     <script src="/d3-rs-lines.umd-es2015.min.js"></script>
     <script>
 
@@ -447,7 +448,7 @@
                           .legend([ 'A', 'B' ]) // add the legend
                           .language('fr')
                           .stacked(false) // boolean or array of object keys
-                          .curve('curveStepBefore')
+                          .curve('curveStep')
                           .tickFormatValue('($.0f');
                           
     let i = 3;                  
@@ -466,12 +467,13 @@
             return
         }
         // 2 stage animation
-        // rescale the graph using the trim action to i - 1
+        // rescale the graph using the trim action to i - 1 (use the Red Sift ease)
         // then remove the data trimming and animate the new value
         animate
           .datum(TIMES.slice(0, i)) 
           .transition()
             .duration(500)
+            .ease(d3_rs_theme.easing())
             .call(stacks.animation('default').trim(i - 1))
             .on('end', function() {
                 animate.transition()
