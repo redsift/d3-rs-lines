@@ -67,6 +67,7 @@ Property|Description|Transition|Preview
 `fill`|*String, Array, Function* If function, in addition to usual *data*, *index* parameters, a 3rd string parameter indicates the context - one of `area`, `stroke`, `symbol`, `legend`   
 `fillAreaOpacity`|*Unit Number* 
 `fillArea`, `fillStroke`|*Boolean, Array[Boolean]* Sets if the lines should be filled or stroked. By default is set appropriately for line and stack presentation
+`stackOffset`, `stackOrder`|*String, Array, Function* https://github.com/d3/d3-shape#stack-orders https://github.com/d3/d3-shape#stack-offsets
 
 ### Time
 

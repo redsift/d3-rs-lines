@@ -10,6 +10,18 @@ import { voronoi } from 'd3-voronoi';
 import { polygonArea, polygonCentroid } from 'd3-polygon';
 import { nest } from 'd3-collection';
 
+import {  
+  stackOffsetExpand,
+  stackOffsetNone,
+  stackOffsetSilhouette,
+  stackOffsetWiggle,
+  stackOrderAscending,
+  stackOrderDescending,
+  stackOrderInsideOut,
+  stackOrderNone,
+  stackOrderReverse
+} from 'd3-shape';
+
 import { 
   timeMillisecond,
   utcMillisecond,
@@ -147,6 +159,21 @@ const symbols = {
   symbolWye: symbolWye  
 }
 
+const stackOffsets = {
+  stackOffsetExpand: stackOffsetExpand,
+  stackOffsetNone: stackOffsetNone,
+  stackOffsetSilhouette: stackOffsetSilhouette,
+  stackOffsetWiggle: stackOffsetWiggle  
+}
+
+const stackOrders = {
+  stackOrderAscending: stackOrderAscending,
+  stackOrderDescending: stackOrderDescending,
+  stackOrderInsideOut: stackOrderInsideOut,
+  stackOrderNone: stackOrderNone,
+  stackOrderReverse: stackOrderReverse
+}
+
 // If localtime, the dates are assumed to be boundaries in localtime
 export function timeMultiFormat(localtime) {
   let second = utcSecond,
@@ -261,6 +288,8 @@ export default function lines(id) {
       fillStroke = null,
       language = null,
       stacked = null,
+      stackOrder = stackOrderNone, 
+      stackOffset = stackOffsetNone,
       voronoiAttraction = 0.33,
       animateAxis = true,
       animateLabels = true,
@@ -336,6 +365,10 @@ export default function lines(id) {
   let _mapCurve = _map(curves);
   let _mapSymbols = _map(symbols);
   let _fnIntervals = _map(intervals);
+
+  let _mapStackOffset = _map(stackOffsets);
+  let _mapStackOrder = _map(stackOrders);
+    
   let _mapIntervalTickCount = function (c) {
     
     let o = _fnIntervals(c);
@@ -452,6 +485,14 @@ export default function lines(id) {
           } else {
             stacker.keys(stacked);
           }
+          
+          let _stackOrder = _mapStackOrder(stackOrder);
+          console.log(_stackOrder, stackOrder);
+          if (_stackOrder != null) stacker.order(_stackOrder);
+          
+          let _stackOffset = _mapStackOffset(stackOffset);
+          if (_stackOffset != null) stacker.offset(_stackOffset);
+                    
           data = stacker(data).map(s => s.map(v => [ v.data.l, v ]));
         } else if (Array.isArray(data[0])) {
           data = data.map(a => a.map((d, i) => value(d, i, true))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );
@@ -479,6 +520,15 @@ export default function lines(id) {
       
       let sdata = _mapData(_fillStroke);
       
+      let _curve = data.map(function (d, i) {
+        if (!Array.isArray(curve)) {
+          return _mapCurve(curve);
+        }  
+        if (i < curve.length) {
+          return _mapCurve(curve[i]);
+        }
+        return null;
+      });
 
       g.datum(data); // this rebind is required even though there is a following select
 
@@ -644,13 +694,6 @@ export default function lines(id) {
           .y1(d => scaleV(d[1][1])) // top
           .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);      
       
-      let cv = _mapCurve(curve);
-      if (cv != null) {  
-        lines.curve(cv);  
-        areas.curve(cv);
-      }
-
-   
       let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
       let sym = data.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : null);
             
@@ -671,11 +714,12 @@ export default function lines(id) {
         elmArea = elmArea.transition(context);
         elmStroke = elmStroke.transition(context);
       }  
-      elmArea.attr('d', areas)
+      
+      elmArea.attr('d', (d, i) => _curve[i] != null ? areas.curve(_curve[i])(d, i) : areas(d, i))
               .attr('opacity', _fillOpacity)
               .attr('fill', (d,i) => colors(d, i, 'area'));   
 
-      elmStroke.attr('d', lines)
+      elmStroke.attr('d', (d, i) => _curve[i] != null ? lines.curve(_curve[i])(d, i) : lines(d, i))
                 .attr('stroke', (d,i) => colors(d, i, 'stroke'));     
 
       let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => sym[i] != null ? d.map(function (v) { return { v : v, i : i }; }) : []);
@@ -930,6 +974,14 @@ export default function lines(id) {
   
   _impl.stacked = function(value) {
     return arguments.length ? (stacked = value, _impl) : stacked;
+  };  
+ 
+  _impl.stackOrder = function(value) {
+    return arguments.length ? (stackOrder = value, _impl) : stackOrder;
+  };  
+
+  _impl.stackOffset = function(value) {
+    return arguments.length ? (stackOffset = value, _impl) : stackOffset;
   };  
     
   _impl.fill = function(value) {

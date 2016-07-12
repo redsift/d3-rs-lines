@@ -470,7 +470,7 @@
                           .tickCountIndex('utcMonth') // want monthly ticks
                           .labelTime('multi') // use the smart formatter
                           .legend([ 'A', 'B' ]) // add the legend
-                          .curve('curveStep')
+                          .curve([ 'curveStep', 'curveBasis' ])
                           .language('fr')
                           .fillArea([ true, false ])
                           .fillStroke([ false, true ])
@@ -485,14 +485,25 @@
                           .legend([ 'A', 'B' ]) // add the legend
                           .curve('curveStep')
                           .language('fr')
-                          .stacked(true) // boolean or array of object keys
+                          .stacked(false) // boolean or array of object keys
                           .niceIndex(false)
                           .tickFormatValue('($.0f');
-                      
-    d3.select('#elm')
-      .datum(TIMES) 
+    let i = 3;                  
+    let animate = d3.select('#elm')
+      .datum(TIMES.slice(0, i)) 
         .call(stacks);
-
+        
+    function doit() {  
+        if (i < TIMES.length) i++; 
+        animate
+          .datum(TIMES.slice(0, i)) 
+          .transition()
+            .duration(1500)
+            .call(stacks); // .stacked(!stacks.stacked())
+    }
+    setInterval(doit, 2000);
+    
+    
     let curves = d3_rs_lines.html('curved')
                           .width(700) // scale it up
                           .tickCountIndex('utcMonth') // want monthly ticks
