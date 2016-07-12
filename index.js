@@ -4,5 +4,7 @@ export {
 
 
 export {
-  default as html
+  default as html,
+  intervals as timeIntervals,
+  timeMultiFormat as timeMultiFormat
 } from "./src/lines";

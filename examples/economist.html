@@ -1,0 +1,104 @@
+<html>
+  <head>
+    <style>
+      
+    body {
+      margin: 1em;
+    }
+    /*
+    svg {
+    background-color: #f7f7f7;
+    }*/
+
+    </style>    
+  </head>
+  <body>
+    <p>The Federal Reserve Bank of St. Louis wrote about <a href="https://fredblog.stlouisfed.org/2016/04/job-polarization/">changes in the U.S. labor market</a>.</p>
+    <p>Data us presented here via the <code>d3-rs-lines</code> chart.</p>
+    <div id="elm"></div>
+        
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="/d3-rs-lines.umd-es2015.js"></script>
+    <script>
+
+    'use strict';
+    /*
+    LNU02032201, Employment Level: Management, Professional, and Related Occupations (nonroutine cognitive)
+
+    LNU02032205, Employment Level: Sales and Office Occupations (routine cognitive)
+
+    LNU02032210, Employment Level: Construction and Extraction Occupations (routine manual)
+    LNU02032211, Employment Level: Installation, Maintenance, and Repair Occupations (routine manual)
+    LNU02032212, Employment Level: Production, Transportation and Material Moving Occupations (routine manual)
+
+    LNU02032204, Employment Level: Service Occupations (nonroutine manual)
+    */
+    
+    var mapping = {
+      'LNU02032201': 'Non-routine cognitive', 
+      'LNU02032205': 'Routine cognitive', 
+      'LNU02032210': 'Routine manual',
+      'LNU02032211': 'Routine manual',
+      'LNU02032212': 'Routine manual',
+      'LNU02032204': 'Non-routine manual'
+    };
+    
+    
+    var reports = Object.keys(mapping);
+    var groups = d3.map(reports.map(k => mapping[k]), d => d ).keys();
+    
+    var requests = reports.map(id => '/' + id + '.json')
+                        .map(function (url) {
+                          return new Promise(ok => d3.json(url, ok));  
+                        });
+   
+    Promise.all(requests)
+      .then(function (raw) {
+        var parseDate = d3.timeParse('%Y-%m-%d');
+        
+        return d3.nest()
+                .key(d => d.r)
+                .rollup(a => d3.nest()
+                  .key(d => d.l)
+                  .rollup(a => d3.sum(a, e => e.v))
+                  .entries(a.map(e => e.v)
+                            .reduce((a, e) => a.concat(e), [])
+                          )
+                )
+                .entries(raw.map(e => e.observations.map(d => ({ l: d.date, v: parseInt(d.value) })))
+                                                    .map((d,i) => ({ r: mapping[reports[i]], v: d }))
+                )
+                .map(v => v.value.map(d => ({ l: parseDate(d.key), v: d.value * 1000 })));
+      })
+      .then(function (data) {
+
+        var display = d3_rs_lines.html()
+                .labelTime(d3_rs_lines.timeMultiFormat())
+                .width(700)
+                .height(400)
+                .fillArea(false)
+                .niceIndex('false')
+                .axisValue('right')
+                .tickFormatValue('.0s')
+                .legendOrientation('voronoi') // voronoi
+                .animateAxis(true)
+                .tickMinorIndex(null)
+                .legend(groups);
+
+        function draw(scale, animation) {        
+          var animated = data.map(a => a.map(e => ({ l: e.l, v: e.v * scale }) ) );
+          var node = d3.select('#elm').datum(animated);
+          if (animation === true) {
+            node = node.transition().duration(3000);
+          }
+          node.call(display);
+        }
+        draw(0, false);     
+        draw(1, true);
+      })
+      .catch(e => console.error(e.stack));
+
+
+    </script>
+  </body>
+</html>

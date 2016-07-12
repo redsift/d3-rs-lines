@@ -12,27 +12,11 @@
     <div id="elm"></div>
         
     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="//static.redsift.io/reusable/d3-rs-theme/latest/d3-rs-theme.umd-es2015.min.js"></script>
     <script src="/d3-rs-lines.umd-es2015.min.js"></script>
     <script>
 
     'use strict';
-
-    d3.select('#elm').call(d3_rs_lines.html('empty'));
-    
-    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('basic').fillArea(true));
-
-    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('currency').fillArea(false).tickCountIndex(3).tickFormatIndex('($.1f'));
-
-    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('clipped-index').tickCountIndex(3).tickFormatIndex('($.1f').maxIndex(4));
-
-    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('clipped-value').tickCountIndex(3).tickFormatIndex('($.1f').maxValue(4));
-
-    d3.select('#elm').datum([ 0, 1 ]).call(d3_rs_lines.html('basic-legend').legend([ 'A', 'B' ]).symbol('symbolDiamond'));
-
-    d3.select('#elm').datum([ 0, 1 ]).call(d3_rs_lines.html('voronoi-legend').legend([ 'Inline', 'Ignored' ]).legendOrientation('voronoi'));
-
-    d3.select('#elm').datum([ [ 1, 2, 4 ], [ 0, 1 ] ]).call(d3_rs_lines.html('multi'));
-
 
     var TIMES = [
       {
@@ -456,51 +440,52 @@
         ]
       }
     ];
-    
-    /*
-    console.log(TIMES.map((d, i) => d.l = i));
-    
-    console.log(encodeURIComponent(JSON.stringify(TIMES)));
-    */
-    // [ 'symbolCross', 'symbolStar' ]
-    // 
-
-    
-    let curves = d3_rs_lines.html('curved')
-                          .width(700) // scale it up
-                          .tickCountIndex('utcMonth') // want monthly ticks
-                          .labelTime('multi') // use the smart formatter
-                          .legend([ 'A', 'B' ]) // add the legend
-                          .stacked(true) // boolean or array of object keys
-                          .niceIndex(false)
-                          .tickFormatValue('($.0f');
-                      
-    d3.select('#elm')
-      .datum(TIMES) 
-        .call(curves);
-     
-    let area = d3_rs_lines.html('basic-time')
-                    .scale(2)
-                    .labelTime('%d-%b')
-                    .curve('')
-                    .fill([ 'green', 'red' ])
-                    .symbol([ null, 'symbolStar' ])
-                    .tickCountIndex('timeWeek') // timeWeek, timeBiWeek
-                    .language('ru');
-    
-    d3.select('#elm').datum(TIMES).call(area);
-
-    let bars = d3_rs_lines.html('bars')
+                    
+    let stacks = d3_rs_lines.html('stacked')
                           .width(700) // scale it up
                           .tickCountIndex('utcMonth') // want monthly ticks
                           .labelTime('multi') // use the smart formatter
                           .legend([ 'A', 'B' ]) // add the legend
                           .language('fr')
-                          .fillArea([ true, false ])
-                          .fillStroke([ false, true ])
+                          .stacked(true) // boolean or array of object keys
+                          .curve('curveStep')
+                          .tipHtml((d,i) => 'HELLO')
                           .tickFormatValue('($.0f');
-                      
-    d3.select('#elm').datum(TIMES).call(bars);
+                          
+    let i = 3;                  
+    let animate = d3.select('#elm')
+      .datum(TIMES.slice(0, i)) 
+        .call(stacks);
+    
+    let timer = null;    
+    function doit() {  
+        // keep adding data sets
+        if (i < TIMES.length) {
+            i++; 
+        } else {
+            clearInterval(timer);
+            timer = null;
+            return
+        }
+        // 2 stage animation
+        // rescale the graph using the trim action to i - 1 (use the Red Sift ease)
+        // then remove the data trimming and animate the new value
+        animate
+          .datum(TIMES.slice(0, i)) 
+          .transition()
+            .duration(500)
+            .ease(d3_rs_theme.easing())
+            .call(stacks.animation('default').trim(i - 1))
+            .on('end', function() {
+                animate.transition()
+                        .duration(1000)
+                        .call(stacks.animation('reveal').trim(null));
+            }); 
+            
+    }
+    timer = setInterval(doit, 2000);
+
+
 
     </script>
   </body>
