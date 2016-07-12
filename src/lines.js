@@ -4,8 +4,8 @@ import { line, area, symbol, stack } from 'd3-shape';
 import { max, min, descending } from 'd3-array';
 import { scaleLinear, scaleLog, scaleTime } from 'd3-scale';
 import { axisBottom, axisLeft, axisRight } from 'd3-axis';
-import { timeFormat, timeFormatDefaultLocale } from 'd3-time-format';
-import { formatDefaultLocale } from 'd3-format';
+import { timeFormat, timeFormatLocale, timeFormatDefaultLocale } from 'd3-time-format';
+import { formatLocale, formatDefaultLocale } from 'd3-format';
 import { voronoi } from 'd3-voronoi';
 import { polygonArea, polygonCentroid } from 'd3-polygon';
 import { nest } from 'd3-collection';
@@ -175,7 +175,7 @@ const stackOrders = {
 }
 
 // If localtime, the dates are assumed to be boundaries in localtime
-export function timeMultiFormat(localtime) {
+export function timeMultiFormat(localtime, tf) {
   let second = utcSecond,
       minute = utcMinute,
       hour = utcHour,
@@ -193,16 +193,19 @@ export function timeMultiFormat(localtime) {
     month = timeMonth;
     year = timeYear;  
   }
+  
+  if (tf == null) tf = timeFormat;
+  
   return function (date, i) {
-    let formatMillisecond = timeFormat(".%L"),
-        formatSecond = timeFormat(":%S"),
-        formatMinute = timeFormat("%I:%M"),
-        formatHour = timeFormat("%I %p"),
-        formatDay = timeFormat("%a %d"),
-        formatWeek = timeFormat("%b %d"),
-        formatMonth = timeFormat("%B"),
-        formatYear = timeFormat("%Y"),
-        formatShortYear = timeFormat("%y");
+    let formatMillisecond = tf(".%L"),
+        formatSecond = tf(":%S"),
+        formatMinute = tf("%I:%M"),
+        formatHour = tf("%I %p"),
+        formatDay = tf("%a %d"),
+        formatWeek = tf("%b %d"),
+        formatMonth = tf("%B"),
+        formatYear = tf("%Y"),
+        formatShortYear = tf("%y");
 
     return (second(date) < date ? formatMillisecond
         : minute(date) < date ? formatSecond
@@ -227,8 +230,9 @@ const DEFAULT_AXIS_PADDING = 8;
 const DEFAULT_MAJOR_TICK_SIZE = 8;
 const DEFAULT_MINOR_TICK_SIZE = 4;
 const DEFAULT_FILL_OPACITY = 0.33;
-
-
+const DEFAULT_TIP_CIRCLE_SIZE = 4;
+const DEFAULT_TIP_OFFSET = 4;
+      
 // Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
 const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
                         ".axis text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
@@ -244,9 +248,7 @@ const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Sou
                         ".legend text { font-size: 12px }",
                         "path.stroke { stroke-width: 2.5px }",
                 /*        "path.area { opacity: 0.33 }", */
-                        ".voronoi path { stroke: none }",
-                        ".highlight { opacity: 0.66 }",
-                        ".highlight text { font-size: 12px }"
+                        ".voronoi path { stroke: none }"
                       ].join(' \n');
 
 /*
@@ -295,6 +297,7 @@ export default function lines(id) {
       animateLabels = true,
       axisValue = 'left',
       animation = null,
+      tipHtml = null,
       trim = null,
       _ptrim = null,
       legendOrientation = 'bottom',
@@ -319,7 +322,11 @@ export default function lines(id) {
 
         return [ i, (notArray === true || Array.isArray(d)) ? d : [ d ] ];
       };
-
+      
+  let tid = null;
+  if (id) tid = 'tip-' + id;
+  let rtip = tip(tid).offset([- DEFAULT_TIP_CIRCLE_SIZE - DEFAULT_TIP_OFFSET, 0]);
+      
   // [ [ [i1,v1], [i1,v1] ], [ [i2,v2] ... ], ... ]
   function _flatArrays(a) {
       let maxD = max(a, d => d[1].length);
@@ -402,9 +409,12 @@ export default function lines(id) {
   function _impl(context) {
     let selection = context.selection ? context.selection() : context,
         transition = (context.selection !== undefined);
-   
-    formatDefaultLocale(units(language).d3);
-    timeFormatDefaultLocale(time(language).d3);
+        
+    let localeFormat = units(language).d3;
+    formatDefaultLocale(localeFormat);
+
+    let localeTime = time(language).d3;
+    timeFormatDefaultLocale(localeTime);
 
       
    let _fillOpacity = fillOpacity,
@@ -438,14 +448,6 @@ export default function lines(id) {
       
       let elmS = node.select(root.self()).select(root.child());
 
-      // Tip
-      let tid = null;
-      if (id) tid = 'tip-' + id;
-      let rtip = tip(tid).html((d) => d);
-      let st = style + ' ' + rtip.style();
-      rtip.style(st);
-      elmS.call(rtip);
-      
       let _inset = inset;
       if (_inset == null) {
         _inset = { top: 0, bottom: DEFAULT_INSET + DEFAULT_MAJOR_TICK_SIZE, left: 0, right: 0 };
@@ -472,7 +474,8 @@ export default function lines(id) {
         g.append('g').attr('class', 'lines');
         g.append('g').attr('class', 'voronoi');
       }
-
+      g.selectAll('circle.tip-point').remove();
+        
       let data = g.datum() || [];
       
       if (!Array.isArray(data)) {
@@ -622,6 +625,7 @@ export default function lines(id) {
         .attr('transform', 'translate(' + axisTranslate + ',0)'); 
 
       let aI = axisBottom(scaleI).tickPadding(axisPaddingIndex);
+      
       if (labelTime != null) {
         let freq = _mapIntervalTickCount(tickCountIndex);
         if (freq != null) {
@@ -803,18 +807,11 @@ export default function lines(id) {
         .attr('fill', d => colors(d.v, d.i, 'symbol'))
         .attr('stroke', 'none');  
       
-      let indexs = [];
-      function seriesFor(v) {
-        for (let i=0; i<indexs.length; ++i) {
-          if (v < indexs[i]) return i - 1;
-        }
-        
-        return indexs.length - 1;
-      }
-      let flat = data.reduce((p, a) => (indexs.push(p.length), p.concat(a)), []);
+
+      let flat = data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i ] )), []);
       let overlay = voronoi()
                     .x(d => scaleI(d[0]))
-                    .y(d => scaleV(d[1][1]))
+                    .y(d => scaleV(d[1]))
                     .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
                     .polygons(flat);
       
@@ -825,13 +822,105 @@ export default function lines(id) {
               .style('pointer-events', 'all')
               .merge(vmesh);
               
-      vmesh.attr('d', d => d != null ? 'M' + d.join('L') + 'Z' : null)
-          .attr('class', (d, i) => 'series-' + seriesFor(i));
+      vmesh.attr('d', d => d != null ? 'M' + d.join('L') + 'Z' : '')
+          .attr('class', d => d != null ? 'series-' + d.data[2] : null);
 
-// highlight selected entry
+      let _tipHtml = tipHtml;
+      if (_tipHtml == null) {
+        let fmtX = null;
+        
+        if (labelTime != null) {
+          if (typeof labelTime === 'function') {
+            fmtX = labelTime          
+          } else if (labelTime === 'multi') {
+            let tf = timeFormatLocale(localeTime).format;
+            
+            fmtX = timeMultiFormat(false, tf);       
+          } else {
+            let tf = timeFormatLocale(localeTime);
+            
+            fmtX = tf.format(labelTime);          
+          }
+        } else if (tickFormatIndex != null) {
+          fmtX = formatLocale(localeFormat).format(tickFormatIndex);
+        }        
+        
+        let fmtY = null;
+        
+        if (formatValue != null) {
+          if (typeof formatValue === 'function') {
+            fmtY = formatValue;
+          } else {
+            fmtY = formatLocale(localeFormat).format(formatValue);
+          }
+        }
+            
+        _tipHtml = function (d,i,s) {
+          let v = value(d);
+          let x = v[0];
+          let y = v[1][s];
+
+          if (fmtX != null) {
+            x = fmtX(x);
+          }
+                    
+          if (fmtY != null) {
+            y = fmtY(y);
+          }
+           
+          return x + ', ' + y;
+        }
+      }
+
+      // Tip
+
+      let st = style + ' ' + rtip.style();
+      rtip.style(st);
+      rtip.html(_tipHtml);
+      elmS.call(rtip);
+
+      vmesh.on('mouseover', function (d) {
+        let s = d.data[2];
+        let i = d.data[3];
+        
+        let item = data[s][i];
+        
+        let y = scaleV(item[1][1]);
+        let x = scaleI(item[0]);
+        
+        let nested = item[1].data;
+        
+        if (nested !== undefined) {
+          item = nested;
+        }
+        
+        g.append('circle')
+          .attr('r', DEFAULT_TIP_CIRCLE_SIZE)
+          .attr('class', 'tip outline')
+          .attr('cx', x)
+          .attr('cy', y)
+          .attr('fill', 'black');
+          
+        let circle = g.append('circle')
+          .attr('r', DEFAULT_TIP_CIRCLE_SIZE - 0.5)
+          .attr('class', 'tip fill')
+          .attr('cx', x)
+          .attr('cy', y)
+          .attr('fill', colors(item, s));
+
+        rtip.show.apply(circle.node(), [ item, i, s ]);
+      });
+       
+      elmS.on('mouseout', function () {
+        g.selectAll('circle.tip').remove();
+        rtip.hide.apply(this);
+      });
+      rtip.hide();
+      
+// highlight selected entry 
 //            .attr('fill', (d, i) => (candidates.indexOf(i) === -1) ? 'none' : 'red')
         
-      let labels = []; 
+      let labels = [];  
 
       if (legendOrientation === 'voronoi') {
         const centerI = (scaleI.range()[1] - scaleI.range()[0]) / 2;
@@ -842,9 +931,9 @@ export default function lines(id) {
           // the more central (in x), the more suitable
           let centraility = Math.cos(UNIT_TO_RAD * Math.abs(centerI - c[0]) / centerI);
           // a: larger number, more suitable polygon
-          return { a: polygonArea(d) * centraility, s: seriesFor(i), i: i, c: c };
+          return { a: polygonArea(d) * centraility, s: d.data[2], i: i, c: c };
         }
-        
+         
         // will drag the text position towards the data point by a funciton of 
         // voronoiAttraction
         let calculateTextPosition = function(centroid, point) {
@@ -873,7 +962,7 @@ export default function lines(id) {
                       // nothing was an option
                       return 0;
                     });  
-        labels = candidates.map(i => calculateTextPosition(polys[i].c, [ scaleI(flat[i][0]), scaleV(flat[i][1][1]) ]));
+        labels = candidates.map(i => calculateTextPosition(polys[i].c, [ scaleI(flat[i][0]), scaleV(flat[i][1]) ]));
       }
       
       let vlabels = g.select('g.voronoi').selectAll('text').data(labels);
@@ -1110,6 +1199,10 @@ export default function lines(id) {
   _impl.animation = function(value) {
     return arguments.length ? (animation = value, _impl) : animation;
   };     
+          
+  _impl.tipHtml = function(value) {
+    return arguments.length ? (tipHtml = value, _impl) : tipHtml;
+  };             
           
               
   return _impl;

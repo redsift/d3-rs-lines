@@ -447,8 +447,9 @@
                           .labelTime('multi') // use the smart formatter
                           .legend([ 'A', 'B' ]) // add the legend
                           .language('fr')
-                          .stacked(false) // boolean or array of object keys
+                          .stacked(true) // boolean or array of object keys
                           .curve('curveStep')
+                          .tipHtml((d,i) => 'HELLO')
                           .tickFormatValue('($.0f');
                           
     let i = 3;                  

@@ -465,19 +465,6 @@
     // [ 'symbolCross', 'symbolStar' ]
     // 
 
-    let bars = d3_rs_lines.html('bars')
-                          .width(700) // scale it up
-                          .tickCountIndex('utcMonth') // want monthly ticks
-                          .labelTime('multi') // use the smart formatter
-                          .legend([ 'A', 'B' ]) // add the legend
-                          .curve([ 'curveStep', 'curveBasis' ])
-                          .language('fr')
-                          .fillArea([ true, false ])
-                          .fillStroke([ false, true ])
-                          .tickFormatValue('($.0f');
-                      
-    d3.select('#elm').datum(TIMES).call(bars);
-                  
     
     let curves = d3_rs_lines.html('curved')
                           .width(700) // scale it up
@@ -503,6 +490,17 @@
     
     d3.select('#elm').datum(TIMES).call(area);
 
+    let bars = d3_rs_lines.html('bars')
+                          .width(700) // scale it up
+                          .tickCountIndex('utcMonth') // want monthly ticks
+                          .labelTime('multi') // use the smart formatter
+                          .legend([ 'A', 'B' ]) // add the legend
+                          .language('fr')
+                          .fillArea([ true, false ])
+                          .fillStroke([ false, true ])
+                          .tickFormatValue('($.0f');
+                      
+    d3.select('#elm').datum(TIMES).call(bars);
 
     </script>
   </body>
