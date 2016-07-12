@@ -722,7 +722,7 @@ export default function lines(id) {
       }  
 
       function revealInterpolation(tr, fn) {
-        return function (d, i, a) {
+        return function (d, i) {
           let ln = fn(i);
           if (tr == null) tr = 1;
           
@@ -753,7 +753,7 @@ export default function lines(id) {
       }
       
       function valueInterpolation(tr, fn) {
-        return function (d, i, a) {
+        return function (d, i) {
           let ln = fn(i);
 
           return function(t) {
