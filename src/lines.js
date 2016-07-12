@@ -294,6 +294,9 @@ export default function lines(id) {
       animateAxis = true,
       animateLabels = true,
       axisValue = 'left',
+      animation = null,
+      trim = null,
+      _ptrim = null,
       legendOrientation = 'bottom',
       axisPaddingIndex = DEFAULT_AXIS_PADDING,
       axisPaddingValue = DEFAULT_AXIS_PADDING,
@@ -487,7 +490,6 @@ export default function lines(id) {
           }
           
           let _stackOrder = _mapStackOrder(stackOrder);
-          console.log(_stackOrder, stackOrder);
           if (_stackOrder != null) stacker.order(_stackOrder);
           
           let _stackOffset = _mapStackOffset(stackOffset);
@@ -500,15 +502,19 @@ export default function lines(id) {
           data = _flatArrays(data.map((d, i) => value(d, i, false))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );          
         }
       }
-
+      
       let _mapData = function(option) {
         let out = [];
         if (!Array.isArray(option)) {
-          out = data.map(d => option === true ? d : []);
+          out = data.map(d => option === true ? 
+          trim == null ? d : d.slice(0, trim)
+          : []);
         } else {
           out = data.map(function (d, i) {
             if (i < option.length) {
-              return option[i] === true ? d : [];
+              return option[i] === true ? 
+              trim == null ? d : d.slice(0, trim) 
+              : [];
             }
             return [];
           });
@@ -517,9 +523,9 @@ export default function lines(id) {
       }
                 
       let fdata = _mapData(_fillArea);
-      
+            
       let sdata = _mapData(_fillStroke);
-      
+
       let _curve = data.map(function (d, i) {
         if (!Array.isArray(curve)) {
           return _mapCurve(curve);
@@ -714,14 +720,81 @@ export default function lines(id) {
         elmArea = elmArea.transition(context);
         elmStroke = elmStroke.transition(context);
       }  
+
+      function revealInterpolation(tr, fn) {
+        return function (d, i, a) {
+          let ln = fn(i);
+          if (tr == null) tr = 1;
+          
+          let interpolate = scaleLinear()
+                              .domain([0, 1])
+                              .range([tr, d.length + 1]);
+
+          return function(t) {
+            if (d.length == 0) return '';
+
+            let flooredX = Math.floor(interpolate(t));
+            
+            let weight = interpolate(t) - flooredX;
+            let interpolatedLine = d.slice(0, flooredX);
+
+            if (flooredX > 0 && flooredX < d.length) {
+              let wY0 = d[flooredX][1][0] * weight + d[flooredX-1][1][0] * (1.0 - weight);
+              let wY1 = d[flooredX][1][1] * weight + d[flooredX-1][1][1] * (1.0 - weight);
+
+              let wX = d[flooredX][0] * weight + d[flooredX-1][0] * (1.0 - weight);
+
+              interpolatedLine.push([ wX, [ wY0, wY1 ] ]);
+            }
+
+            return ln(interpolatedLine);
+          }
+        } 
+      }
       
-      elmArea.attr('d', (d, i) => _curve[i] != null ? areas.curve(_curve[i])(d, i) : areas(d, i))
-              .attr('opacity', _fillOpacity)
-              .attr('fill', (d,i) => colors(d, i, 'area'));   
+      function valueInterpolation(tr, fn) {
+        return function (d, i, a) {
+          let ln = fn(i);
 
-      elmStroke.attr('d', (d, i) => _curve[i] != null ? lines.curve(_curve[i])(d, i) : lines(d, i))
-                .attr('stroke', (d,i) => colors(d, i, 'stroke'));     
+          return function(t) {
+            let flooredX = d.length - 1;
+            if (flooredX < 0) return '';
+            
+            let interpolatedLine = d.slice(0, flooredX);
 
+            let wY0 = d[flooredX][1][0] * t;
+            let wY1 = d[flooredX][1][1] * t;
+
+            interpolatedLine.push([ d[flooredX][0], [ wY0, wY1 ] ]);
+
+            return ln(interpolatedLine);
+          }
+        } 
+      }      
+      
+      
+      elmArea.attr('opacity', _fillOpacity)
+             .attr('fill', (d,i) => colors(d, i, 'area'));        
+      
+      elmStroke.attr('stroke', (d,i) => colors(d, i, 'stroke'));
+      
+      let interpolation = null;
+      if (transition === true) {
+        if (animation === 'reveal') {
+          interpolation = revealInterpolation;
+        } else if (animation === 'value') {
+          interpolation = valueInterpolation;
+        }
+      }
+      
+      if (interpolation !== null) {
+        elmArea.attrTween('d', interpolation(_ptrim, i => _curve[i] != null ? areas.curve(_curve[i]) : areas));
+        elmStroke.attrTween('d', interpolation(_ptrim, i => _curve[i] != null ? lines.curve(_curve[i]) : lines));
+      } else {
+        elmArea.attr('d', (d, i) => _curve[i] != null ? areas.curve(_curve[i])(d, i) : areas(d, i));
+        elmStroke.attr('d', (d, i) => _curve[i] != null ? lines.curve(_curve[i])(d, i) : lines(d, i));
+      }
+      
       let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => sym[i] != null ? d.map(function (v) { return { v : v, i : i }; }) : []);
       eS.exit().remove();
       eS = eS.enter().append('path').merge(eS);
@@ -818,6 +891,8 @@ export default function lines(id) {
             .attr('y', d => d[1])
             .attr('fill', (d,i) => colors(d,i,'legend'))
             .text((d, i) => i < legend.length ? legend[i] : '');
+            
+      _ptrim = trim;
     });
     
   }
@@ -983,7 +1058,11 @@ export default function lines(id) {
   _impl.stackOffset = function(value) {
     return arguments.length ? (stackOffset = value, _impl) : stackOffset;
   };  
-    
+
+  _impl.trim = function(value) {
+    return arguments.length ? (trim = value, _impl) : trim;
+  }; 
+      
   _impl.fill = function(value) {
     return arguments.length ? (fill = value, _impl) : fill;
   };    
@@ -1026,7 +1105,12 @@ export default function lines(id) {
 
   _impl.animateLabels = function(value) {
     return arguments.length ? (animateLabels = value, _impl) : animateLabels;
-  };                
+  };        
+
+  _impl.animation = function(value) {
+    return arguments.length ? (animation = value, _impl) : animation;
+  };     
+          
               
   return _impl;
 }
