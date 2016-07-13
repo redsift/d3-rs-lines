@@ -461,7 +461,9 @@ export default function lines(id) {
       } else {
         _inset = { top: _inset, bottom: _inset, left: _inset, right: _inset };
       }     
-    
+      
+      let cid = id != null ? 'clip-' + id : 'clip';
+      
       // Create required elements
       let g = elmS.select(_impl.self())
       if (g.empty()) {
@@ -473,8 +475,10 @@ export default function lines(id) {
         g.append('g').attr('class', 'legend');
         g.append('g').attr('class', 'lines');
         g.append('g').attr('class', 'voronoi');
+        g.append('clipPath').attr('id', cid).append('rect');
       }
       g.selectAll('circle.tip-point').remove();
+
         
       let data = g.datum() || [];
       
@@ -487,7 +491,9 @@ export default function lines(id) {
           let stacker = stack();
           
           if (stacked === true) {
-            stacker.keys(data[0].v.map((d,i) => i)).value((d,k) => d.v[k]);
+            let maxD = max(data, d => d.v.length);
+            
+            stacker.keys(Array.from(Array(maxD).keys())).value((d,k) => d.v[k] != null ? d.v[k] : 0);
           } else {
             stacker.keys(stacked);
           }
@@ -499,6 +505,7 @@ export default function lines(id) {
           if (_stackOffset != null) stacker.offset(_stackOffset);
                     
           data = stacker(data).map(s => s.map(v => [ v.data.l, v ]));
+
         } else if (Array.isArray(data[0])) {
           data = data.map(a => a.map((d, i) => value(d, i, true))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );
         } else {
@@ -578,7 +585,14 @@ export default function lines(id) {
         _inset = lchart.childInset(_inset);
 
         elmS.datum(legend).call(lchart);
-      }            
+      }       
+      
+      
+      g.select('#' + cid).select('rect')
+        .attr('x', _inset.left)
+        .attr('y', _inset.top)
+        .attr('width', w - _inset.right - _inset.left)
+        .attr('height', h - _inset.bottom - _inset.top);           
       
       let sV = scaleLinear(); 
       if (logValue > 0) sV = scaleLog().base(logValue);
@@ -695,14 +709,14 @@ export default function lines(id) {
       // Note: A lot of scaleI, scaleV calls.    
       let lines = line()
         .x(d => scaleI(d[0]))
-        .y(d => scaleV(d[1][1]))
-        .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);
+        .y(d => scaleV(d[1][1]));
+      // These can be truncated .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);
 
       let areas = area()
           .x(d => scaleI(d[0]))
           .y0(d => scaleV(d[1][0])) // bottom
-          .y1(d => scaleV(d[1][1])) // top
-          .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);      
+          .y1(d => scaleV(d[1][1])); // top
+ 
       
       let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
       let sym = data.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : null);
@@ -720,6 +734,11 @@ export default function lines(id) {
       let elmArea = elmL.selectAll('path.area').data(fdata);
       let elmStroke = elmL.selectAll('path.stroke').data(sdata);
 
+      // Add the clipping paths to ensure curves do not move outside 
+      // the graph area. Do this before the animation
+      elmArea.attr('clip-path', `url(#${cid})`);
+      elmStroke.attr('clip-path', `url(#${cid})`);
+      
       if (transition === true) {
         elmArea = elmArea.transition(context);
         elmStroke = elmStroke.transition(context);
