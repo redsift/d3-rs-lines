@@ -481,7 +481,7 @@ export default function lines(id) {
         g.append('g').attr('class', 'voronoi');
         g.append('clipPath').attr('id', cid).append('rect');
       }
-      g.selectAll('circle.tip-point').remove();
+      g.selectAll('circle.tip').remove();
 
         
       let data = g.datum() || [];
