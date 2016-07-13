@@ -1,6 +1,6 @@
 {
   "name": "@redsift/d3-rs-lines",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Generates line charts using D3v4.",
   "keywords": [
     "line",
@@ -40,7 +40,7 @@
     "d3-voronoi": "^1.0.1",
     "d3-polygon": "^1.0.0",
     "@redsift/d3-rs-svg": "~0.2.5",
-    "@redsift/d3-rs-legends": "~0.0.3",    
+    "@redsift/d3-rs-legends": "~0.0.4",    
     "@redsift/d3-rs-theme": "~0.0.2",
     "@redsift/d3-rs-tip": "~0.2.3",     
     "@redsift/d3-rs-intl": "~0.0.2"
