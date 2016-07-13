@@ -47,7 +47,8 @@
         "l" : 1461542400000,
         "v" : [
           5,
-          11
+          11,
+          4
         ]
       },
       {
@@ -509,7 +510,8 @@
                           .language('fr')
                           .tickFormatValue('($.0f');
                       
-    d3.select('#elm').datum(TIMES).call(bars).call(pattern);
+    d3.select('#elm').datum(TIMES.slice(0, 3)).call(bars).call(pattern);
+
 
     </script>
   </body>

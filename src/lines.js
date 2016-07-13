@@ -248,6 +248,11 @@ const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Sou
                         ".legend text { font-size: 12px }",
                         "path.stroke { stroke-width: 2.5px }",
                 /*        "path.area { opacity: 0.33 }", */
+                        "path.series-0 { stroke: red }",
+                        "path.series-1 { stroke: green }",
+                        "path.series-2 { stroke: orange }",
+                        "path.series-3 { stroke: grey }", 
+
                         ".voronoi path { stroke: none }"
                       ].join(' \n');
 
@@ -587,12 +592,13 @@ export default function lines(id) {
         elmS.datum(legend).call(lchart);
       }       
       
-      
+      // margin is a bit of a hack but don't trim the top
+      let marginTop = margin.top !== undefined ? margin.top : margin;
       g.select('#' + cid).select('rect')
         .attr('x', _inset.left)
-        .attr('y', _inset.top)
+        .attr('y', -(_inset.top + marginTop))
         .attr('width', w - _inset.right - _inset.left)
-        .attr('height', h - _inset.bottom - _inset.top);           
+        .attr('height', h - _inset.bottom - _inset.top + marginTop);           
       
       let sV = scaleLinear(); 
       if (logValue > 0) sV = scaleLog().base(logValue);
@@ -838,10 +844,10 @@ export default function lines(id) {
       vmesh.exit().remove();
       vmesh = vmesh.enter().append('path')
               .attr('fill', 'none')
-              .style('pointer-events', 'all')
               .merge(vmesh);
               
       vmesh.attr('d', d => d != null ? 'M' + d.join('L') + 'Z' : '')
+          .style('pointer-events', d => (console.log(d), d == null ? 'none' : 'all') )
           .attr('class', d => d != null ? 'series-' + d.data[2] : null);
 
       let _tipHtml = tipHtml;
