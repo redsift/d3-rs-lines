@@ -24,13 +24,20 @@
 
     d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('currency').fillArea(false).tickCountIndex(3).tickFormatIndex('($.1f'));
 
-    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('clipped-index').tickCountIndex(3).tickFormatIndex('($.1f').maxIndex(4));
+    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('clipped-index')
+                                                      .tickCountIndex(3)
+                                                      .tickFormatIndex('($.1f')
+                                                      .maxIndex(4)
+                                                      .highlightIndex([ [ 3.2 ] ]));
 
     d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('clipped-value').tickCountIndex(3).tickFormatIndex('($.1f').maxValue(4));
 
     d3.select('#elm').datum([ 0, 1 ]).call(d3_rs_lines.html('basic-legend').legend([ 'A', 'B' ]).symbol('symbolDiamond'));
 
-    d3.select('#elm').datum([ 0, 1 ]).call(d3_rs_lines.html('voronoi-legend').legend([ 'Inline', 'Ignored' ]).legendOrientation('voronoi'));
+    d3.select('#elm').datum([ 0, 1 ]).call(d3_rs_lines.html('voronoi-legend')
+                      .legend([ 'Inline', 'Ignored' ])
+                      .legendOrientation('voronoi')
+                      .highlightIndex([ { l: 'small', v: [ 0.3 ] }, [ 0.6, 0.9 ] ]));
 
     d3.select('#elm').datum([ [ 1, 2, 4 ], [ 0, 1 ] ]).call(d3_rs_lines.html('multi'));
 
@@ -40,7 +47,7 @@
         "l" : 1461456000000,
         "v" : [
           12,
-          3
+          3 
         ]
       },
       {

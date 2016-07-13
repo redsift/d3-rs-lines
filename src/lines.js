@@ -196,7 +196,7 @@ export function timeMultiFormat(localtime, tf) {
   
   if (tf == null) tf = timeFormat;
   
-  return function (date, i) {
+  return function (date) {
     let formatMillisecond = tf(".%L"),
         formatSecond = tf(":%S"),
         formatMinute = tf("%I:%M"),
@@ -231,14 +231,17 @@ const DEFAULT_MINOR_TICK_SIZE = 4;
 const DEFAULT_FILL_OPACITY = 0.33;
 const DEFAULT_TIP_CIRCLE_SIZE = 4;
 const DEFAULT_TIP_OFFSET = 4;
+const DEFAULT_HIGHLIGHT_SIZE = 3;
+const DEFAULT_HIGHLIGHT_PADDING = 4;
       
 // Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
 const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
-                        ".axis text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
+                        ".axis text, g.highlight text { font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
                         ".voronoi text{ font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 500 }",
-                        ".chart-legends text{ font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 300; fill: " + display.text.black + "; }",
+                        ".chart-legends text, g.highlight text.supplied { font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 300; fill: " + display.text.black + "; }",
                         ".axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; }",
                         "g.axis-v path { stroke: none }",
+                        "g.highlight text { font-size: 14px; }",
                         "g.axis-v-minor path { stroke: none }",
                         "g.axis-i path, g.axis-i g.tick line, g.axis-i-minor g.tick line { stroke-width: 1.0px; stroke: " + display.text.black + " }",
                         "g.axis-i-minor path { stroke: none }",
@@ -291,6 +294,7 @@ export default function lines(id) {
       stackOrder = stackOrderNone, 
       stackOffset = stackOffsetNone,
       voronoiAttraction = 0.33,
+      highlightIndex = [],
       animateAxis = true,
       animateLabels = true,
       axisValue = 'left',
@@ -472,7 +476,12 @@ export default function lines(id) {
         g.append('g').attr('class', 'axis-i axis');
         g.append('g').attr('class', 'legend');
         g.append('g').attr('class', 'lines');
+
+        g.append('g').attr('class', 'highlight-v highlight');
+        g.append('g').attr('class', 'highlight-i highlight');
+        
         g.append('g').attr('class', 'voronoi');
+        
         g.append('clipPath').attr('id', cid).append('rect');
       }
       g.selectAll('circle.tip').remove();
@@ -844,34 +853,38 @@ export default function lines(id) {
           .attr('class', d => d != null ? 'series-' + d.data[2] : null);
 
       let _tipHtml = tipHtml;
-      if (_tipHtml == null) {
-        let fmtX = null;
-        
-        if (labelTime != null) {
-          if (typeof labelTime === 'function') {
-            fmtX = labelTime          
-          } else if (labelTime === 'multi') {
-            let tf = timeFormatLocale(localeTime).format;
-            
-            fmtX = timeMultiFormat(false, tf);       
-          } else {
-            let tf = timeFormatLocale(localeTime);
-            
-            fmtX = tf.format(labelTime);          
-          }
-        } else if (tickFormatIndex != null) {
-          fmtX = formatLocale(localeFormat).format(tickFormatIndex);
-        }        
-        
-        let fmtY = null;
-        
-        if (formatValue != null) {
-          if (typeof formatValue === 'function') {
-            fmtY = formatValue;
-          } else {
-            fmtY = formatLocale(localeFormat).format(formatValue);
-          }
+
+      let fmtX = (v) => v;
+      
+      if (labelTime != null) {
+        if (typeof labelTime === 'function') {
+          fmtX = labelTime          
+        } else if (labelTime === 'multi') {
+          let tf = timeFormatLocale(localeTime).format;
+          
+          fmtX = timeMultiFormat(false, tf);       
+        } else {
+          let tf = timeFormatLocale(localeTime);
+          
+          fmtX = tf.format(labelTime);          
         }
+      } else if (typeof tickFormatIndex === 'function') {
+        fmtX = tickFormatIndex;
+      } else if (tickFormatIndex != null) {
+        fmtX = formatLocale(localeFormat).format(tickFormatIndex);
+      }      
+      
+      let fmtY = null;
+      
+      if (formatValue != null) {
+        if (typeof formatValue === 'function') {
+          fmtY = formatValue;
+        } else {
+          fmtY = formatLocale(localeFormat).format(formatValue);
+        }
+      }
+      if (_tipHtml == null) {
+
             
         _tipHtml = function (d,i,s) {
           let v = value(d);
@@ -1005,7 +1018,56 @@ export default function lines(id) {
             .attr('y', d => d[1])
             .attr('fill', (d,i) => colors(d,i,'legend'))
             .text((d, i) => i < legend.length ? legend[i] : '');
-            
+      
+      
+      function _mapHighlights(e) {
+        if (Array.isArray(e)) {
+          return { l: e.map(fmtX).join(','), v: e };  
+        }
+        
+        if (typeof e === 'object') {
+          if (!Array.isArray(e.v)) {
+            return { l: e.l, v: [ e.v ], c: 'supplied' };
+          } else {
+            return { l: e.l, v: e.v, c: 'supplied' };
+          }
+        }
+        
+        return { l: fmtX(e), v: [ e ] }
+      }
+      
+      let _highlightIndex = highlightIndex.map(_mapHighlights);
+      
+      let hIndex = g.select('g.highlight-v').selectAll('rect').data(_highlightIndex);
+      hIndex.exit().remove();
+      hIndex = hIndex.enter().append('rect')            
+            .merge(hIndex);
+
+      let hLabel = g.select('g.highlight-v').selectAll('text').data(_highlightIndex);
+      hLabel.exit().remove();
+      hLabel = hLabel.enter().append('text')    
+            .attr('dominant-baseline', 'text-before-edge')  
+            .merge(hLabel);
+
+      hLabel
+        .attr('text-anchor', d => d.v[1] == null ? 'start' : 'middle')
+        .attr('class', d => d.c);  
+
+      if (transition === true) {
+        hIndex = hIndex.transition(context);
+        hLabel = hLabel.transition(context);
+      }
+      
+      hIndex.attr('y', _inset.top)
+            .attr('height', h - _inset.bottom - _inset.top)
+            .attr('x', d => scaleI(d.v[0]) - (DEFAULT_HIGHLIGHT_SIZE / 2))
+            .attr('width', d => d.v[1] == null ? DEFAULT_HIGHLIGHT_SIZE : scaleI(d.v[1]) - scaleI(d.v[0]))
+            .attr('fill', 'red');
+      
+      hLabel.attr('x', d => d.v[1] == null ? scaleI(d.v[0]) + DEFAULT_HIGHLIGHT_PADDING : DEFAULT_HIGHLIGHT_PADDING + scaleI(d.v[0]) + (scaleI(d.v[1]) - scaleI(d.v[0]))/2 )
+            .attr('y', _inset.top)
+            .text(d => d.l);
+                  
       _ptrim = trim;
     });
     
@@ -1229,6 +1291,9 @@ export default function lines(id) {
     return arguments.length ? (tipHtml = value, _impl) : tipHtml;
   };             
           
-              
+  _impl.highlightIndex = function(value) {
+    return arguments.length ? (highlightIndex = value, _impl) : highlightIndex;
+  }; 
+                
   return _impl;
 }
