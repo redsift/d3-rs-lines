@@ -47,7 +47,7 @@ tape("html() 2 line state", function(t) {
     t.equal(node.selectAll('path.stroke').size(), 2);
     t.equal(node.selectAll('path.area').size(), 2);
 
-    t.equal(node.selectAll('.voronoi path.series-0').size(), 2);
+    t.equal(node.selectAll('.voronoi path.series-0').size(), 1);
     t.equal(node.selectAll('.voronoi path.series-1').size(), 2);
             
     t.end();
@@ -87,12 +87,12 @@ tape("html() voronoi updates", function(t) {
     
     t.equal(el.selectAll('svg').size(), 1);
     
-    t.equal(el.selectAll('.voronoi path').size(), 4, '4 voronoi polygons');
+    t.equal(el.selectAll('.voronoi path').size(), 3, '4 voronoi polygons');
     t.equal(el.selectAll('.voronoi text').size(), 2, '2 text labels');
     
     el.datum([ [ 0, 1 ] ]).call(host);
     
-    t.equal(el.selectAll('.voronoi path').size(), 2, '2 voronoi polygons');
+    t.equal(el.selectAll('.voronoi path').size(), 1, '2 voronoi polygons');
     t.equal(el.selectAll('.voronoi text').size(), 1, '1 text label');
         
     t.end();

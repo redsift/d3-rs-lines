@@ -204,17 +204,16 @@ export function timeMultiFormat(localtime, tf) {
         formatDay = tf("%a %d"),
         formatWeek = tf("%b %d"),
         formatMonth = tf("%B"),
-        formatYear = tf("%Y"),
-        formatShortYear = tf("%y");
+        formatYear = tf("%Y");
+        // formatShortYear = tf("%y"); - not liked
 
     return (second(date) < date ? formatMillisecond
         : minute(date) < date ? formatSecond
         : hour(date) < date ? formatMinute
         : day(date) < date ? formatHour
         : month(date) < date ? (week(date) < date ? formatDay : formatWeek)
-        : year(date) < date ? formatMonth
-        : (i === 0 || date.getUTCFullYear() % 100 === 0) ? formatYear
-        : formatShortYear)(date);
+        : year(date) < date ? formatMonth 
+        : formatYear)(date);
   }
 }
 
@@ -833,13 +832,13 @@ export default function lines(id) {
         .attr('stroke', 'none');  
       
 
-      let flat = data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i ] )), []);
+      let flat = data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i, (e[1][1] - e[1][0])] ).filter(e => e[4] != 0)), []);
       let overlay = voronoi()
                     .x(d => scaleI(d[0]))
                     .y(d => scaleV(d[1]))
                     .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
                     .polygons(flat);
-      
+            
       let vmesh = g.select('g.voronoi').selectAll('path').data(overlay);
       vmesh.exit().remove();
       vmesh = vmesh.enter().append('path')
@@ -847,7 +846,7 @@ export default function lines(id) {
               .merge(vmesh);
               
       vmesh.attr('d', d => d != null ? 'M' + d.join('L') + 'Z' : '')
-          .style('pointer-events', d => (console.log(d), d == null ? 'none' : 'all') )
+          .style('pointer-events', 'all')
           .attr('class', d => d != null ? 'series-' + d.data[2] : null);
 
       let _tipHtml = tipHtml;
