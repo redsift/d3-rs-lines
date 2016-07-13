@@ -491,7 +491,9 @@ export default function lines(id) {
           let stacker = stack();
           
           if (stacked === true) {
-            stacker.keys(data[0].v.map((d,i) => i)).value((d,k) => d.v[k]);
+            let maxD = max(data, d => d.v.length);
+            
+            stacker.keys(Array.from(Array(maxD).keys())).value((d,k) => d.v[k] != null ? d.v[k] : 0);
           } else {
             stacker.keys(stacked);
           }
@@ -503,6 +505,7 @@ export default function lines(id) {
           if (_stackOffset != null) stacker.offset(_stackOffset);
                     
           data = stacker(data).map(s => s.map(v => [ v.data.l, v ]));
+
         } else if (Array.isArray(data[0])) {
           data = data.map(a => a.map((d, i) => value(d, i, true))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );
         } else {

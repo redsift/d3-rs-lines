@@ -12,6 +12,7 @@
     <div id="elm"></div>
         
     <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="//static.redsift.io/reusable/d3-rs-theme/latest/d3-rs-theme.umd-es2015.min.js"></script>
     <script src="/d3-rs-lines.umd-es2015.min.js"></script>
     <script>
 
@@ -403,7 +404,7 @@
         "l" : 1465948800000,
         "v" : [
           18,
-          18
+          14
         ]
       },
       {
@@ -445,7 +446,8 @@
         "l" : 1466467200000,
         "v" : [
           14,
-          19
+          10,
+          9
         ]
       },
       {
@@ -490,17 +492,24 @@
     
     d3.select('#elm').datum(TIMES).call(area);
 
+    let pattern = d3_rs_theme.diagonals('highlight-fill', d3_rs_theme.patterns.diagonal1);
+    pattern.foreground(d3_rs_theme.presentation10.light[d3_rs_theme.presentation10.names.blue]);
+    pattern.background(d3_rs_theme.presentation10.standard[d3_rs_theme.presentation10.names.blue]);
+
     let bars = d3_rs_lines.html('bars')
                           .width(700) // scale it up
                           .tickCountIndex('utcMonth') // want monthly ticks
                           .labelTime('multi') // use the smart formatter
                           .legend([ 'A', 'B' ]) // add the legend
+                          .curve('curveStep')
+                          .fill([ d3_rs_theme.presentation10.standard[d3_rs_theme.presentation10.names.yellow], 
+                                  d3_rs_theme.presentation10.standard[d3_rs_theme.presentation10.names.blue], 
+                                  pattern.url() ])
+                          .stacked(true)
                           .language('fr')
-                          .fillArea([ true, false ])
-                          .fillStroke([ false, true ])
                           .tickFormatValue('($.0f');
                       
-    d3.select('#elm').datum(TIMES).call(bars);
+    d3.select('#elm').datum(TIMES).call(bars).call(pattern);
 
     </script>
   </body>
