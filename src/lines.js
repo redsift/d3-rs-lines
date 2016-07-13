@@ -246,12 +246,6 @@ const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Sou
                         "line.grid, g.axis-i g.tick line.grid { stroke-width: 2.0px; stroke-dasharray: 2,2; stroke: " + display.lines.seperator + " }",
                         ".legend text { font-size: 12px }",
                         "path.stroke { stroke-width: 2.5px }",
-                /*        "path.area { opacity: 0.33 }", */
-                        "path.series-0 { stroke: red }",
-                        "path.series-1 { stroke: green }",
-                        "path.series-2 { stroke: orange }",
-                        "path.series-3 { stroke: grey }", 
-
                         ".voronoi path { stroke: none }"
                       ].join(' \n');
 
@@ -832,21 +826,21 @@ export default function lines(id) {
         .attr('stroke', 'none');  
       
 
-      let flat = data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i, (e[1][1] - e[1][0])] ).filter(e => e[4] != 0)), []);
+      let flat = data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i, (e[1][1] - e[1][0])] )), []);
       let overlay = voronoi()
                     .x(d => scaleI(d[0]))
                     .y(d => scaleV(d[1]))
                     .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
                     .polygons(flat);
-            
+ 
       let vmesh = g.select('g.voronoi').selectAll('path').data(overlay);
       vmesh.exit().remove();
       vmesh = vmesh.enter().append('path')
               .attr('fill', 'none')
+              .attr('pointer-events', 'all')
               .merge(vmesh);
               
       vmesh.attr('d', d => d != null ? 'M' + d.join('L') + 'Z' : '')
-          .style('pointer-events', 'all')
           .attr('class', d => d != null ? 'series-' + d.data[2] : null);
 
       let _tipHtml = tipHtml;
@@ -909,6 +903,13 @@ export default function lines(id) {
         
         let item = data[s][i];
         
+        // Quick hack to ignore empty series by scanning downward
+        while (item == null || (item[1][1] - item[1][0] === 0)) {
+          s = s - 1;
+          if (s < 0) break;
+          item = data[s][i];
+        }
+                
         let y = scaleV(item[1][1]);
         let x = scaleI(item[0]);
         
