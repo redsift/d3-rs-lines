@@ -175,7 +175,12 @@ const stackOrders = {
 }
 
 // If localtime, the dates are assumed to be boundaries in localtime
-export function timeMultiFormat(localtime, tf) {
+export function timeMultiFormat(options, tf) {
+  options = options || {};
+  
+  let format = null;
+  
+    
   let second = utcSecond,
       minute = utcMinute,
       hour = utcHour,
@@ -184,7 +189,7 @@ export function timeMultiFormat(localtime, tf) {
       month = utcMonth,
       year = utcYear;
       
-  if (localtime === true) {
+  if (options.localtime === true) {
     second = timeSecond;
     minute = timeMinute;
     hour = timeHour;
@@ -193,27 +198,41 @@ export function timeMultiFormat(localtime, tf) {
     month = timeMonth;
     year = timeYear;  
   }
-  
-  if (tf == null) tf = timeFormat;
-  
-  return function (date) {
-    let formatMillisecond = tf(".%L"),
-        formatSecond = tf(":%S"),
-        formatMinute = tf("%I:%M"),
-        formatHour = tf("%I %p"),
-        formatDay = tf("%a %d"),
-        formatWeek = tf("%b %d"),
-        formatMonth = tf("%B"),
-        formatYear = tf("%Y");
-        // formatShortYear = tf("%y"); - not liked
 
-    return (second(date) < date ? formatMillisecond
-        : minute(date) < date ? formatSecond
-        : hour(date) < date ? formatMinute
-        : day(date) < date ? formatHour
-        : month(date) < date ? (week(date) < date ? formatDay : formatWeek)
-        : year(date) < date ? formatMonth 
-        : formatYear)(date);
+  return function (date) {
+    // needs to done late to ensure the localisation is correct if it has been set
+    if (format == null) {
+      tf = tf || timeFormat;
+      format = {};
+      [ 
+          [ 'millisecond',  '.%L' ],
+          [ 'second',       ':%S' ],
+          [ 'minute',       '%I:%M' ],
+          [ 'hour',         '%I %p' ],
+          [ 'day',          '%a %d' ],
+          [ 'week',         '%b %d' ],
+          [ 'month',        '%B' ],
+          [ 'year',         '%Y' ]
+        ].forEach(function (e) {
+          let opt = options[e[0]];
+          if (opt == null) {
+            format[e[0]] = tf(e[1]);
+          } else if (typeof opt === 'function') {
+            format[e[0]] = opt;
+          } else {
+            format[e[0]] = tf(opt);
+          }
+        });      
+    }
+    
+    
+    return (second(date) < date ? format.millisecond
+        : minute(date) < date ? format.second
+        : hour(date) < date ? format.minute
+        : day(date) < date ? format.hour
+        : month(date) < date ? (week(date) < date ? format.day : format.week)
+        : year(date) < date ? format.month 
+        : format.year)(date);
   }
 }
 

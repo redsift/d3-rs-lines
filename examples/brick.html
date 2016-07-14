@@ -507,7 +507,7 @@
     let bars = d3_rs_lines.html('bars')
                           .width(700) // scale it up
                           .tickCountIndex('utcMonth') // want monthly ticks
-                          .labelTime('multi') // use the smart formatter
+                          .labelTime(d3_rs_lines.timeMultiFormat({ month: '%b' })) // use the smart formatter
                           .legend([ 'A', 'B', null, 'Q' ]) // add the legend
                           .legendOrientation('bottom')
                           .curve('curveStep')
