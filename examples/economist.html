@@ -14,7 +14,7 @@
   </head>
   <body>
     <p>The Federal Reserve Bank of St. Louis wrote about <a href="https://fredblog.stlouisfed.org/2016/04/job-polarization/">changes in the U.S. labor market</a>.</p>
-    <p>Data us presented here via the <code>d3-rs-lines</code> chart.</p>
+    <p>Data us presented here via the <code>d3-rs-lines</code> chart and was assembled from the <a href="https://fred.stlouisfed.org/release/tables?rid=50&eid=3149">data feeds</a>.</p>
     <div id="elm"></div>
         
     <script src="https://d3js.org/d3.v4.min.js"></script>
@@ -43,6 +43,10 @@
       'LNU02032204': 'Non-routine manual'
     };
     
+    var SIGNIFICANT_EVENTS = [
+      { l: 'Lehman Brothers', v: d3.timeParse('%B %d, %Y')('September 15, 2008').getTime() },
+      { l: 'Dot-com Peak', v: d3.timeParse('%B %d, %Y')('March 10, 2000').getTime() }
+    ]
     
     var reports = Object.keys(mapping);
     var groups = d3.map(reports.map(k => mapping[k]), d => d ).keys();
@@ -81,6 +85,7 @@
                 .axisValue('right')
                 .tickFormatValue('.0s')
                 .legendOrientation('voronoi') // voronoi
+                .highlightIndex(SIGNIFICANT_EVENTS)
                 .animateAxis(true)
                 .tickMinorIndex(null)
                 .legend(groups);

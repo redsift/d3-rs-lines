@@ -81,8 +81,20 @@ import { svg as legends } from '@redsift/d3-rs-legends';
 import { units, time } from '@redsift/d3-rs-intl';
 import { tip } from '@redsift/d3-rs-tip';
 import { 
-  presentation10 as presentation10,
-  display as display
+  presentation10,
+  display,
+  patterns,
+  diagonals,
+  fontImportVariable,
+  fontImportFixed,
+  fontFamilyVariableWidth,
+  fontFamilyFixedWidth,
+  fontSizeForWidth,
+  fontWeightMonochrome,
+  dataWidth,
+  gridWidth,
+  gridDash,
+  axisWidth
 } from '@redsift/d3-rs-theme';
 
 export const intervals = {
@@ -241,29 +253,31 @@ const DEFAULT_SIZE = 420;
 const DEFAULT_ASPECT = 160 / 420;
 const DEFAULT_MARGIN = 26;  // white space
 const DEFAULT_INSET = 24;   // scale space
-const DEFAULT_TICK_COUNT = 4;
+const DEFAULT_TICK_COUNT_INDEX = 6;
+const DEFAULT_TICK_COUNT_VALUE = Math.ceil(DEFAULT_TICK_COUNT_INDEX * DEFAULT_ASPECT);
 const DEFAULT_SYMBOL_SIZE = 32;
 const DEFAULT_SCALE = 42; // why not
 const DEFAULT_AXIS_PADDING = 8;
 const DEFAULT_MAJOR_TICK_SIZE = 8;
 const DEFAULT_MINOR_TICK_SIZE = 4;
-const DEFAULT_FILL_OPACITY = 0.33;
 const DEFAULT_TIP_CIRCLE_SIZE = 4;
 const DEFAULT_TIP_OFFSET = 4;
-const DEFAULT_HIGHLIGHT_SIZE = 3;
 const DEFAULT_HIGHLIGHT_PADDING = 4;
-      
-// Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
-const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
+
+
+const DEFAULT_FILL_OPACITY = 0.33;
+
+/*
+[ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
                         ".axis text, g.highlight text { font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
                         ".voronoi text{ font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 500 }",
                         ".chart-legends text, g.highlight text.supplied { font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 300; fill: " + display.text.black + "; }",
                         ".axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; }",
                         "g.axis-v path { stroke: none }",
                         "g.highlight text { font-size: 14px; }",
-                        "g.axis-v-minor path { stroke: none }",
+            
                         "g.axis-i path, g.axis-i g.tick line, g.axis-i-minor g.tick line { stroke-width: 1.0px; stroke: " + display.text.black + " }",
-                        "g.axis-i-minor path { stroke: none }",
+
                         "line { stroke-width: 1.5px }",
                         "line.grid, g.axis-i g.tick line.grid { stroke-width: 2.0px; stroke-dasharray: 2,2; stroke: " + display.lines.seperator + " }",
                         ".legend text { font-size: 12px }",
@@ -271,21 +285,34 @@ const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Sou
                         ".voronoi path { stroke: none }"
                       ].join(' \n');
 
-/*
+
                         "path.series-0 { stroke: red }",
                         "path.series-1 { stroke: green }",
                         "path.series-2 { stroke: orange }",
                         "path.series-3 { stroke: grey }" 
                         */
+/*
+function template(strings, ...keys) {
+  return (function(...values) {
+    var dict = values[values.length - 1] || {};
+    var result = [strings[0]];
+    keys.forEach(function(key, i) {
+      var value = Number.isInteger(key) ? values[key] : dict[key];
+      result.push(value, strings[i + 1]);
+    });
+    return result.join('');
+  });
+}
+*/
 
 export default function lines(id) {
   let classed = 'chart-lines', 
       theme = 'light',
-      background = null,
+      background = undefined,
       width = DEFAULT_SIZE,
       height = null,
       margin = DEFAULT_MARGIN,
-      style = DEFAULT_STYLE,
+      style = null,
       scale = 1.0,
       logValue = 0,
       minValue = null,
@@ -297,8 +324,8 @@ export default function lines(id) {
       tickFormatIndex = null,
       tickDisplayValue = null,
       tickDisplayIndex = null,
-      tickCountValue = DEFAULT_TICK_COUNT,
-      tickCountIndex = null,
+      tickCountValue = DEFAULT_TICK_COUNT_VALUE,
+      tickCountIndex = DEFAULT_TICK_COUNT_INDEX,
       tickMinorValue = null,
       tickMinorIndex = null,
       niceValue = true,
@@ -317,6 +344,8 @@ export default function lines(id) {
       animateAxis = true,
       animateLabels = true,
       axisValue = 'left',
+      axisDisplayIndex = true,
+      axisDisplayValue = false,
       animation = null,
       tipHtml = null,
       trim = null,
@@ -330,7 +359,6 @@ export default function lines(id) {
       curve = curveCatmullRom.alpha(0),
       psymbol = [ ],
       symbolSize = DEFAULT_SYMBOL_SIZE,
-      highlight = [ ],
       displayTip = -1,
       value = function (d, i, notArray) {
         if (Array.isArray(d)) {
@@ -451,7 +479,11 @@ export default function lines(id) {
       if (_fillArea == null) _fillArea = true;
       if (_fillStroke == null) _fillStroke = true;         
     }
-
+    
+    let _background = background;
+    if (_background === undefined) {
+      _background = display[theme].background;
+    }
       
     selection.each(function() {
       let node = select(this);  
@@ -460,14 +492,24 @@ export default function lines(id) {
       // SVG element
       let sid = null;
       if (id) sid = 'svg-' + id;
-      let root = svg(sid).width(width).height(sh).margin(margin).scale(scale);
+      let root = svg(sid).width(width).height(sh).margin(margin).scale(scale).background(_background);
       let tnode = node;
       if (transition === true) {
         tnode = node.transition(context);
       }
       tnode.call(root);
       
-      let elmS = node.select(root.self()).select(root.child());
+      let snode = node.select(root.self());
+      
+      let pid = 'highlight-fill';
+      if (id) pid = pid + '-' + id;
+      let pattern = diagonals(pid, patterns.highlight);
+//      TODO: Could expose the colors for customization      
+      pattern.foreground(display[theme].highlight);
+      pattern.background('transparent');      
+      snode.call(pattern);   
+            
+      let elmS = snode.select(root.child());
 
       let _inset = inset;
       if (_inset == null) {
@@ -727,11 +769,12 @@ export default function lines(id) {
       
       gAxisV.call(aV)
         .selectAll('line')
-          .attr('class', gridValue ? 'grid' : null);      
+          .attr('class', (d, i) => gridValue ? i === 0 ? 'grid first' : 'grid' : null);      
 
       gAxisI.call(aI)
         .selectAll('line')
-          .attr('class', gridIndex ? 'grid' : null);  
+          .attr('class', (d, i) => gridIndex ? i === 0 ? 'grid first' : 'grid' : null);
+            
       
       // Note: A lot of scaleI, scaleV calls.    
       let lines = line()
@@ -908,7 +951,12 @@ export default function lines(id) {
         _tipHtml = function (d,i,s) {
           let v = value(d);
           let x = v[0];
-          let y = v[1][s];
+          let y = 0;
+          if (stacked === true) {
+            y = v[1][s];
+          } else {
+            y = v[1][1];
+          }
 
           if (fmtX != null) {
             x = fmtX(x);
@@ -923,8 +971,12 @@ export default function lines(id) {
       }
 
       // Tip
-
-      let st = style + ' ' + rtip.style();
+      // TODO: This has to be fixed in tip
+      let _style = style;
+      if (_style == null) {
+        _style = _impl.defaultStyle();
+      }
+      let st = _style + ' ' + rtip.style();
       rtip.style(st);
       rtip.html(_tipHtml);
       elmS.call(rtip);
@@ -935,11 +987,13 @@ export default function lines(id) {
         
         let item = data[s][i];
         
-        // Quick hack to ignore empty series by scanning downward
-        while (item == null || (item[1][1] - item[1][0] === 0)) {
-          s = s - 1;
-          if (s < 0) break;
-          item = data[s][i];
+        if (stacked === true) {
+          // Quick hack to ignore empty series by scanning downward
+          while (item == null || (item[1][1] - item[1][0] === 0)) {
+            s = s - 1;
+            if (s < 0) break;
+            item = data[s][i];
+          }
         }
                 
         let y = scaleV(item[1][1]);
@@ -956,7 +1010,7 @@ export default function lines(id) {
           .attr('class', 'tip outline')
           .attr('cx', x)
           .attr('cy', y)
-          .attr('fill', 'black');
+          .attr('fill', display[theme].axis);
           
         let circle = g.append('circle')
           .attr('r', DEFAULT_TIP_CIRCLE_SIZE - 0.5)
@@ -973,9 +1027,6 @@ export default function lines(id) {
         rtip.hide.apply(this);
       });
       rtip.hide();
-      
-// highlight selected entry 
-//            .attr('fill', (d, i) => (candidates.indexOf(i) === -1) ? 'none' : 'red')
         
       let labels = [];  
 
@@ -1079,9 +1130,17 @@ export default function lines(id) {
       
       hIndex.attr('y', _inset.top)
             .attr('height', h - _inset.bottom - _inset.top)
-            .attr('x', d => scaleI(d.v[0]) - (DEFAULT_HIGHLIGHT_SIZE / 2))
-            .attr('width', d => d.v[1] == null ? DEFAULT_HIGHLIGHT_SIZE : scaleI(d.v[1]) - scaleI(d.v[0]))
-            .attr('fill', 'red');
+            .attr('x', d => scaleI(d.v[0]) - (pattern.interval() / 2))
+            .attr('width', function(d) {
+              let minSz = pattern.interval();
+              if (d.v[1] == null) return minSz;
+              
+              let sz = scaleI(d.v[1]) - scaleI(d.v[0]);
+
+              if (sz < minSz) return minSz;
+              return sz;
+            })
+            .attr('fill', pattern.url());
       
       hLabel.attr('x', d => d.v[1] == null ? scaleI(d.v[0]) + DEFAULT_HIGHLIGHT_PADDING : DEFAULT_HIGHLIGHT_PADDING + scaleI(d.v[0]) + (scaleI(d.v[1]) - scaleI(d.v[0]))/2 )
             .attr('y', _inset.top)
@@ -1097,6 +1156,58 @@ export default function lines(id) {
   _impl.id = function() {
     return id;
   };
+
+  _impl.defaultStyle = () => `
+                  ${fontImportVariable}
+                  ${fontImportFixed}  
+                  ${_impl.self()} .axis line, 
+                  ${_impl.self()} .axis path { 
+                                              shape-rendering: crispEdges; 
+                                              stroke-width: ${axisWidth}; 
+                                              stroke: none;
+                                            }
+
+                  ${_impl.self()} g.axis-v line, 
+                  ${_impl.self()} g.axis-v path { 
+                                              stroke: ${axisDisplayValue === true ? display[theme].axis : 'none'}; 
+                                            }
+                                            
+                  ${_impl.self()} g.axis-i line, 
+                  ${_impl.self()} g.axis-i path { 
+                                              stroke: ${axisDisplayIndex === true ? display[theme].axis : 'none'}; 
+                                            }
+
+                  ${_impl.self()} g.axis-v-minor line,
+                  ${_impl.self()} g.axis-i-minor line { 
+                                              stroke: ${display[theme].axis}; 
+                                            }
+                                              
+                  ${_impl.self()} text { 
+                                        font-family: ${fontFamilyVariableWidth};
+                                        font-size: ${fontSizeForWidth(width)};                
+                                        font-weight: ${fontWeightMonochrome}; 
+                                        fill: ${display[theme].text}; 
+                                      }
+                   
+                  ${_impl.self()} path.stroke { stroke-width: ${dataWidth} }
+                  
+                  ${_impl.self()} g.axis-v line.grid,
+                  ${_impl.self()} g.axis-i line.grid { 
+                                             stroke-width: ${gridWidth}; 
+                                             stroke-dasharray: ${gridDash};
+                                             stroke: ${display[theme].grid};
+                                            }
+
+                  ${_impl.self()} g.axis-i g.tick line.grid.first,                  
+                  ${_impl.self()} g.axis-v g.tick line.grid.first {
+                                              stroke: none;
+                                            }
+                                            
+                  ${_impl.self()} .axis text, 
+                  ${_impl.self()} g.highlight text { 
+                                   font-family: ${fontFamilyFixedWidth} 
+                                  }
+                `;
     
   _impl.classed = function(value) {
     return arguments.length ? (classed = value, _impl) : classed;
@@ -1209,10 +1320,6 @@ export default function lines(id) {
   _impl.displayTip = function(value) {
     return arguments.length ? (displayTip = value, _impl) : displayTip;
   };   
-  
-  _impl.highlight = function(value) {
-    return arguments.length ? (highlight = _coerceArray(value), _impl) : highlight;
-  };    
 
   _impl.gridValue = function(value) {
     return arguments.length ? (gridValue = value, _impl) : gridValue;
@@ -1311,8 +1418,17 @@ export default function lines(id) {
   };             
           
   _impl.highlightIndex = function(value) {
-    return arguments.length ? (highlightIndex = value, _impl) : highlightIndex;
+    return arguments.length ? (highlightIndex = _coerceArray(value), _impl) : highlightIndex;
   }; 
+  
+  _impl.axisDisplayValue = function(value) {
+    return arguments.length ? (axisDisplayValue = value, _impl) : axisDisplayValue;
+  };        
+
+  _impl.axisDisplayIndex = function(value) {
+    return arguments.length ? (axisDisplayIndex = value, _impl) : axisDisplayIndex;
+  };      
+  
                 
   return _impl;
 }

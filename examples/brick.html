@@ -20,17 +20,30 @@
 
     d3.select('#elm').call(d3_rs_lines.html('empty'));
     
-    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('basic').fillArea(true));
+    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('basic'));
+    
+    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('dark').theme('dark'));
 
     d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('currency').fillArea(false).tickCountIndex(3).tickFormatIndex('($.1f'));
+
+    d3.select('#elm').datum([ 0, 1, 4, -6, 2, 8, 9 ]).call(d3_rs_lines.html('currency-neg')
+                    .fillArea(true)
+                    .gridIndex(true)
+                    .axisDisplayValue(true)
+                    .tickCountIndex(3)
+                    .tickFormatIndex('($.1f'));
 
     d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('clipped-index')
                                                       .tickCountIndex(3)
                                                       .tickFormatIndex('($.1f')
                                                       .maxIndex(4)
-                                                      .highlightIndex([ [ 3.2 ] ]));
+                                                      .highlightIndex(3.2));
 
-    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('clipped-value').tickCountIndex(3).tickFormatIndex('($.1f').maxValue(4));
+    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ])
+        .call(d3_rs_lines.html('clipped-value')
+                .tickCountIndex(3)
+                .tickFormatIndex('($.1f')
+                .maxValue(4));
 
     d3.select('#elm').datum([ 0, 1 ]).call(d3_rs_lines.html('basic-legend').legend([ 'A', 'B' ]).symbol('symbolDiamond'));
 
@@ -39,7 +52,7 @@
                       .legendOrientation('voronoi')
                       .highlightIndex([ { l: 'small', v: [ 0.3 ] }, [ 0.6, 0.9 ] ]));
 
-    d3.select('#elm').datum([ [ 1, 2, 4 ], [ 0, 1 ] ]).call(d3_rs_lines.html('multi'));
+    d3.select('#elm').datum([ [ 1, 2, 4 ], [ 0, 1 ] ]).call(d3_rs_lines.html('multi').tickMinorIndex(30).tickMinorValue(10));
 
 
     var TIMES = [
@@ -478,11 +491,12 @@
     
     let curves = d3_rs_lines.html('curved')
                           .width(700) // scale it up
-                          .tickCountIndex('utcMonth') // want monthly ticks
+                          .tickCountIndex('utcFriday') // want monthly ticks
                           .labelTime('multi') // use the smart formatter
                           .legend([ 'A', 'B' ]) // add the legend
                           .stacked(true) // boolean or array of object keys
                           .niceIndex(false)
+                          .theme('dark')
                           .tickFormatValue('($.0f');
                       
     d3.select('#elm')
@@ -495,13 +509,13 @@
                     .curve('')
                     .fill([ 'green', 'red' ])
                     .symbol([ null, 'symbolStar' ])
-                    .tickCountIndex('timeWeek') // timeWeek, timeBiWeek
+                    .tickCountIndex('timeBiWeek') // timeWeek, timeBiWeek
                     .language('ru');
     
     d3.select('#elm').datum(TIMES).call(area);
 
     let pattern = d3_rs_theme.diagonals('highlight-fill', d3_rs_theme.patterns.diagonal1);
-    pattern.foreground(d3_rs_theme.presentation10.light[d3_rs_theme.presentation10.names.blue]);
+    pattern.foreground(d3_rs_theme.presentation10.lighter[d3_rs_theme.presentation10.names.blue]);
     pattern.background(d3_rs_theme.presentation10.standard[d3_rs_theme.presentation10.names.blue]);
 
     let bars = d3_rs_lines.html('bars')
@@ -515,6 +529,7 @@
                                   d3_rs_theme.presentation10.standard[d3_rs_theme.presentation10.names.blue], 
                                   pattern.url() ])
                           .stacked(true)
+                          .theme('dark')
                           .language('fr')
                           .tickFormatValue('($.0f');
                       

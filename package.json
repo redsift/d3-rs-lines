@@ -41,7 +41,7 @@
     "d3-polygon": "^1.0.0",
     "@redsift/d3-rs-svg": "~0.2.5",
     "@redsift/d3-rs-legends": "~0.0.4",    
-    "@redsift/d3-rs-theme": "~0.0.2",
+    "@redsift/d3-rs-theme": "~0.1.0",
     "@redsift/d3-rs-tip": "~0.2.3",     
     "@redsift/d3-rs-intl": "~0.0.2"
   },
