@@ -70,6 +70,7 @@ Property|Description|Transition|Preview
 `stackOffset`, `stackOrder`|*String, Array, Function* https://github.com/d3/d3-shape#stack-orders https://github.com/d3/d3-shape#stack-offsets
 `animation`|*String* `reveal`, `value`, `default`
 `trim`|*Integer* Level to trim the array to
+`tipHtml`|*String, Function* parameters of the function are `(d, i, s)` where `d` is the data element, `i` is the index, `s` is the series of the data
 
 ### Time
 

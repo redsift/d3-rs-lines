@@ -81,8 +81,12 @@ import { svg as legends } from '@redsift/d3-rs-legends';
 import { units, time } from '@redsift/d3-rs-intl';
 import { tip } from '@redsift/d3-rs-tip';
 import { 
-  presentation10 as presentation10,
-  display as display
+  presentation10,
+  display,
+  highlights,
+  fonts,
+  widths,
+  dashes
 } from '@redsift/d3-rs-theme';
 
 export const intervals = {
@@ -175,7 +179,12 @@ const stackOrders = {
 }
 
 // If localtime, the dates are assumed to be boundaries in localtime
-export function timeMultiFormat(localtime, tf) {
+export function timeMultiFormat(options, tf) {
+  options = options || {};
+  
+  let format = null;
+  
+    
   let second = utcSecond,
       minute = utcMinute,
       hour = utcHour,
@@ -184,7 +193,7 @@ export function timeMultiFormat(localtime, tf) {
       month = utcMonth,
       year = utcYear;
       
-  if (localtime === true) {
+  if (options.localtime === true) {
     second = timeSecond;
     minute = timeMinute;
     hour = timeHour;
@@ -193,28 +202,41 @@ export function timeMultiFormat(localtime, tf) {
     month = timeMonth;
     year = timeYear;  
   }
-  
-  if (tf == null) tf = timeFormat;
-  
-  return function (date, i) {
-    let formatMillisecond = tf(".%L"),
-        formatSecond = tf(":%S"),
-        formatMinute = tf("%I:%M"),
-        formatHour = tf("%I %p"),
-        formatDay = tf("%a %d"),
-        formatWeek = tf("%b %d"),
-        formatMonth = tf("%B"),
-        formatYear = tf("%Y"),
-        formatShortYear = tf("%y");
 
-    return (second(date) < date ? formatMillisecond
-        : minute(date) < date ? formatSecond
-        : hour(date) < date ? formatMinute
-        : day(date) < date ? formatHour
-        : month(date) < date ? (week(date) < date ? formatDay : formatWeek)
-        : year(date) < date ? formatMonth
-        : (i === 0 || date.getUTCFullYear() % 100 === 0) ? formatYear
-        : formatShortYear)(date);
+  return function (date) {
+    // needs to done late to ensure the localisation is correct if it has been set
+    if (format == null) {
+      tf = tf || timeFormat;
+      format = {};
+      [ 
+          [ 'millisecond',  '.%L' ],
+          [ 'second',       ':%S' ],
+          [ 'minute',       '%I:%M' ],
+          [ 'hour',         '%I %p' ],
+          [ 'day',          '%a %d' ],
+          [ 'week',         '%b %d' ],
+          [ 'month',        '%B' ],
+          [ 'year',         '%Y' ]
+        ].forEach(function (e) {
+          let opt = options[e[0]];
+          if (opt == null) {
+            format[e[0]] = tf(e[1]);
+          } else if (typeof opt === 'function') {
+            format[e[0]] = opt;
+          } else {
+            format[e[0]] = tf(opt);
+          }
+        });      
+    }
+    
+    
+    return (second(date) < date ? format.millisecond
+        : minute(date) < date ? format.second
+        : hour(date) < date ? format.minute
+        : day(date) < date ? format.hour
+        : month(date) < date ? (week(date) < date ? format.day : format.week)
+        : year(date) < date ? format.month 
+        : format.year)(date);
   }
 }
 
@@ -223,49 +245,66 @@ const DEFAULT_SIZE = 420;
 const DEFAULT_ASPECT = 160 / 420;
 const DEFAULT_MARGIN = 26;  // white space
 const DEFAULT_INSET = 24;   // scale space
-const DEFAULT_TICK_COUNT = 4;
+const DEFAULT_TICK_COUNT_INDEX = 6;
+const DEFAULT_TICK_COUNT_VALUE = Math.ceil(DEFAULT_TICK_COUNT_INDEX * DEFAULT_ASPECT);
 const DEFAULT_SYMBOL_SIZE = 32;
 const DEFAULT_SCALE = 42; // why not
 const DEFAULT_AXIS_PADDING = 8;
 const DEFAULT_MAJOR_TICK_SIZE = 8;
 const DEFAULT_MINOR_TICK_SIZE = 4;
-const DEFAULT_FILL_OPACITY = 0.33;
 const DEFAULT_TIP_CIRCLE_SIZE = 4;
 const DEFAULT_TIP_OFFSET = 4;
-      
-// Font fallback chosen to keep presentation on places like GitHub where Content Security Policy prevents inline SRC
-const DEFAULT_STYLE = [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
-                        ".axis text{ font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
+const DEFAULT_HIGHLIGHT_PADDING = 4;
+
+
+// const DEFAULT_FILL_OPACITY = 0.33;
+
+/*
+[ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
+                        ".axis text, g.highlight text { font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
                         ".voronoi text{ font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 500 }",
-                        ".chart-legends text{ font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 300; fill: " + display.text.black + "; }",
+                        ".chart-legends text, g.highlight text.supplied { font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 300; fill: " + display.text.black + "; }",
                         ".axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; }",
                         "g.axis-v path { stroke: none }",
-                        "g.axis-v-minor path { stroke: none }",
+                        "g.highlight text { font-size: 14px; }",
+            
                         "g.axis-i path, g.axis-i g.tick line, g.axis-i-minor g.tick line { stroke-width: 1.0px; stroke: " + display.text.black + " }",
-                        "g.axis-i-minor path { stroke: none }",
+
                         "line { stroke-width: 1.5px }",
                         "line.grid, g.axis-i g.tick line.grid { stroke-width: 2.0px; stroke-dasharray: 2,2; stroke: " + display.lines.seperator + " }",
                         ".legend text { font-size: 12px }",
                         "path.stroke { stroke-width: 2.5px }",
-                /*        "path.area { opacity: 0.33 }", */
                         ".voronoi path { stroke: none }"
                       ].join(' \n');
 
-/*
+
                         "path.series-0 { stroke: red }",
                         "path.series-1 { stroke: green }",
                         "path.series-2 { stroke: orange }",
                         "path.series-3 { stroke: grey }" 
                         */
+/*
+function template(strings, ...keys) {
+  return (function(...values) {
+    var dict = values[values.length - 1] || {};
+    var result = [strings[0]];
+    keys.forEach(function(key, i) {
+      var value = Number.isInteger(key) ? values[key] : dict[key];
+      result.push(value, strings[i + 1]);
+    });
+    return result.join('');
+  });
+}
+*/
 
 export default function lines(id) {
   let classed = 'chart-lines', 
       theme = 'light',
-      background = null,
+      background = undefined,
       width = DEFAULT_SIZE,
       height = null,
       margin = DEFAULT_MARGIN,
-      style = DEFAULT_STYLE,
+      style = undefined,
       scale = 1.0,
       logValue = 0,
       minValue = null,
@@ -277,8 +316,8 @@ export default function lines(id) {
       tickFormatIndex = null,
       tickDisplayValue = null,
       tickDisplayIndex = null,
-      tickCountValue = DEFAULT_TICK_COUNT,
-      tickCountIndex = null,
+      tickCountValue = DEFAULT_TICK_COUNT_VALUE,
+      tickCountIndex = DEFAULT_TICK_COUNT_INDEX,
       tickMinorValue = null,
       tickMinorIndex = null,
       niceValue = true,
@@ -293,9 +332,12 @@ export default function lines(id) {
       stackOrder = stackOrderNone, 
       stackOffset = stackOffsetNone,
       voronoiAttraction = 0.33,
+      highlightIndex = [],
       animateAxis = true,
       animateLabels = true,
       axisValue = 'left',
+      axisDisplayIndex = true,
+      axisDisplayValue = false,
       animation = null,
       tipHtml = null,
       trim = null,
@@ -309,7 +351,6 @@ export default function lines(id) {
       curve = curveCatmullRom.alpha(0),
       psymbol = [ ],
       symbolSize = DEFAULT_SYMBOL_SIZE,
-      highlight = [ ],
       displayTip = -1,
       value = function (d, i, notArray) {
         if (Array.isArray(d)) {
@@ -426,11 +467,15 @@ export default function lines(id) {
       if (_fillArea == null) _fillArea = true;
       if (_fillStroke == null) _fillStroke = false;      
     } else {
-      if (_fillOpacity == null) _fillOpacity = DEFAULT_FILL_OPACITY;
+      if (_fillOpacity == null) _fillOpacity = display[theme].fillOpacity;
       if (_fillArea == null) _fillArea = true;
       if (_fillStroke == null) _fillStroke = true;         
     }
-
+    
+    let _background = background;
+    if (_background === undefined) {
+      _background = display[theme].background;
+    }
       
     selection.each(function() {
       let node = select(this);  
@@ -439,14 +484,24 @@ export default function lines(id) {
       // SVG element
       let sid = null;
       if (id) sid = 'svg-' + id;
-      let root = svg(sid).width(width).height(sh).margin(margin).scale(scale);
+      let root = svg(sid).width(width).height(sh).margin(margin).scale(scale).background(_background);
       let tnode = node;
       if (transition === true) {
         tnode = node.transition(context);
       }
       tnode.call(root);
       
-      let elmS = node.select(root.self()).select(root.child());
+      let snode = node.select(root.self());
+      
+      let pid = 'highlight-fill';
+      if (id) pid = pid + '-' + id;
+      let pattern = highlights(pid);
+//      TODO: Could expose the colors for customization      
+//      pattern.foreground(display[theme].highlight);
+//      pattern.background('transparent');      
+      snode.call(pattern);   
+            
+      let elmS = snode.select(root.child());
 
       let _inset = inset;
       if (_inset == null) {
@@ -474,10 +529,15 @@ export default function lines(id) {
         g.append('g').attr('class', 'axis-i axis');
         g.append('g').attr('class', 'legend');
         g.append('g').attr('class', 'lines');
+
+        g.append('g').attr('class', 'highlight-v highlight');
+        g.append('g').attr('class', 'highlight-i highlight');
+        
         g.append('g').attr('class', 'voronoi');
+        
         g.append('clipPath').attr('id', cid).append('rect');
       }
-      g.selectAll('circle.tip-point').remove();
+      g.selectAll('circle.tip').remove();
 
         
       let data = g.datum() || [];
@@ -579,20 +639,22 @@ export default function lines(id) {
       let colors = _makeFillFn();
       
       // Create the legend
+      let lchart = null;
       if (legend.length > 0 && legendOrientation !== 'voronoi') {
-        let lchart = legends().width(w).height(h).inset(0).fill(colors).orientation(legendOrientation).spacing(7);
+        lchart = legends().width(w).height(h).inset(0).fill(colors).theme(theme).orientation(legendOrientation);
 
         _inset = lchart.childInset(_inset);
 
         elmS.datum(legend).call(lchart);
       }       
       
-      
+      // margin is a bit of a hack but don't trim the top
+      let marginTop = margin.top !== undefined ? margin.top : margin;
       g.select('#' + cid).select('rect')
         .attr('x', _inset.left)
-        .attr('y', _inset.top)
+        .attr('y', -(_inset.top + marginTop))
         .attr('width', w - _inset.right - _inset.left)
-        .attr('height', h - _inset.bottom - _inset.top);           
+        .attr('height', h - _inset.bottom - _inset.top + marginTop);           
       
       let sV = scaleLinear(); 
       if (logValue > 0) sV = scaleLog().base(logValue);
@@ -700,11 +762,12 @@ export default function lines(id) {
       
       gAxisV.call(aV)
         .selectAll('line')
-          .attr('class', gridValue ? 'grid' : null);      
+          .attr('class', (d, i) => gridValue ? i === 0 ? 'grid first' : 'grid' : null);      
 
       gAxisI.call(aI)
         .selectAll('line')
-          .attr('class', gridIndex ? 'grid' : null);  
+          .attr('class', (d, i) => gridIndex ? i === 0 ? 'grid first' : 'grid' : null);
+            
       
       // Note: A lot of scaleI, scaleV calls.    
       let lines = line()
@@ -827,57 +890,66 @@ export default function lines(id) {
         .attr('stroke', 'none');  
       
 
-      let flat = data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i ] )), []);
+      let flat = data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i, (e[1][1] - e[1][0])] )), []);
       let overlay = voronoi()
                     .x(d => scaleI(d[0]))
                     .y(d => scaleV(d[1]))
                     .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
                     .polygons(flat);
-      
+ 
       let vmesh = g.select('g.voronoi').selectAll('path').data(overlay);
       vmesh.exit().remove();
       vmesh = vmesh.enter().append('path')
               .attr('fill', 'none')
-              .style('pointer-events', 'all')
+              .attr('pointer-events', 'all')
               .merge(vmesh);
               
       vmesh.attr('d', d => d != null ? 'M' + d.join('L') + 'Z' : '')
           .attr('class', d => d != null ? 'series-' + d.data[2] : null);
 
       let _tipHtml = tipHtml;
-      if (_tipHtml == null) {
-        let fmtX = null;
-        
-        if (labelTime != null) {
-          if (typeof labelTime === 'function') {
-            fmtX = labelTime          
-          } else if (labelTime === 'multi') {
-            let tf = timeFormatLocale(localeTime).format;
-            
-            fmtX = timeMultiFormat(false, tf);       
-          } else {
-            let tf = timeFormatLocale(localeTime);
-            
-            fmtX = tf.format(labelTime);          
-          }
-        } else if (tickFormatIndex != null) {
-          fmtX = formatLocale(localeFormat).format(tickFormatIndex);
-        }        
-        
-        let fmtY = null;
-        
-        if (formatValue != null) {
-          if (typeof formatValue === 'function') {
-            fmtY = formatValue;
-          } else {
-            fmtY = formatLocale(localeFormat).format(formatValue);
-          }
+
+      let fmtX = (v) => v;
+      
+      if (labelTime != null) {
+        if (typeof labelTime === 'function') {
+          fmtX = labelTime          
+        } else if (labelTime === 'multi') {
+          let tf = timeFormatLocale(localeTime).format;
+          
+          fmtX = timeMultiFormat(false, tf);       
+        } else {
+          let tf = timeFormatLocale(localeTime);
+          
+          fmtX = tf.format(labelTime);          
         }
+      } else if (typeof tickFormatIndex === 'function') {
+        fmtX = tickFormatIndex;
+      } else if (tickFormatIndex != null) {
+        fmtX = formatLocale(localeFormat).format(tickFormatIndex);
+      }      
+      
+      let fmtY = null;
+      
+      if (formatValue != null) {
+        if (typeof formatValue === 'function') {
+          fmtY = formatValue;
+        } else {
+          fmtY = formatLocale(localeFormat).format(formatValue);
+        }
+      }
+      if (_tipHtml == null) {
+
             
         _tipHtml = function (d,i,s) {
           let v = value(d);
           let x = v[0];
-          let y = v[1][s];
+          let y = 0;
+          if (stacked === true) {
+            y = v[1][s];
+          } else {
+            y = v[1][1];
+          }
 
           if (fmtX != null) {
             x = fmtX(x);
@@ -892,8 +964,16 @@ export default function lines(id) {
       }
 
       // Tip
-
-      let st = style + ' ' + rtip.style();
+      let _style = style;
+      if (_style === undefined) {
+        _style = _impl.defaultStyle();
+        
+        if (lchart != null) {
+          _style += lchart.defaultStyle();
+        }
+      }
+      let st = _style + ' ' + rtip.style();
+      // TODO: This has to be fixed in tip
       rtip.style(st);
       rtip.html(_tipHtml);
       elmS.call(rtip);
@@ -904,6 +984,15 @@ export default function lines(id) {
         
         let item = data[s][i];
         
+        if (stacked === true) {
+          // Quick hack to ignore empty series by scanning downward
+          while (item == null || (item[1][1] - item[1][0] === 0)) {
+            s = s - 1;
+            if (s < 0) break;
+            item = data[s][i];
+          }
+        }
+                
         let y = scaleV(item[1][1]);
         let x = scaleI(item[0]);
         
@@ -918,10 +1007,10 @@ export default function lines(id) {
           .attr('class', 'tip outline')
           .attr('cx', x)
           .attr('cy', y)
-          .attr('fill', 'black');
+          .attr('fill', display[theme].axis);
           
         let circle = g.append('circle')
-          .attr('r', DEFAULT_TIP_CIRCLE_SIZE - 0.5)
+          .attr('r', DEFAULT_TIP_CIRCLE_SIZE - widths.outline)
           .attr('class', 'tip fill')
           .attr('cx', x)
           .attr('cy', y)
@@ -935,9 +1024,6 @@ export default function lines(id) {
         rtip.hide.apply(this);
       });
       rtip.hide();
-      
-// highlight selected entry 
-//            .attr('fill', (d, i) => (candidates.indexOf(i) === -1) ? 'none' : 'red')
         
       let labels = [];  
 
@@ -998,8 +1084,65 @@ export default function lines(id) {
       vlabels.attr('x', d => d[0])
             .attr('y', d => d[1])
             .attr('fill', (d,i) => colors(d,i,'legend'))
+            .attr('font-weight', fonts.variable.weightColor) 
             .text((d, i) => i < legend.length ? legend[i] : '');
-            
+      
+      
+      function _mapHighlights(e) {
+        if (Array.isArray(e)) {
+          return { l: e.map(fmtX).join(','), v: e };  
+        }
+        
+        if (typeof e === 'object') {
+          if (!Array.isArray(e.v)) {
+            return { l: e.l, v: [ e.v ], c: 'supplied' };
+          } else {
+            return { l: e.l, v: e.v, c: 'supplied' };
+          }
+        }
+        
+        return { l: fmtX(e), v: [ e ] }
+      }
+      
+      let _highlightIndex = highlightIndex.map(_mapHighlights);
+      
+      let hIndex = g.select('g.highlight-v').selectAll('rect').data(_highlightIndex);
+      hIndex.exit().remove();
+      hIndex = hIndex.enter().append('rect')            
+            .merge(hIndex);
+
+      let hLabel = g.select('g.highlight-v').selectAll('text').data(_highlightIndex);
+      hLabel.exit().remove();
+      hLabel = hLabel.enter().append('text')    
+            .attr('dominant-baseline', 'text-before-edge')  
+            .merge(hLabel);
+
+      hLabel
+        .attr('text-anchor', d => d.v[1] == null ? 'start' : 'middle')
+        .attr('class', d => d.c);  
+
+      if (transition === true) {
+        hIndex = hIndex.transition(context);
+        hLabel = hLabel.transition(context);
+      }
+      
+      hIndex.attr('y', _inset.top)
+            .attr('height', h - _inset.bottom - _inset.top)
+            .attr('x', d => Math.round(scaleI(d.v[0]) - (pattern.size() / 2)))
+            .attr('width', function(d) {
+              let sz = 1;
+              if (d.v[1] != null) {
+                sz = scaleI(d.v[1]) - scaleI(d.v[0]);                
+              }
+              
+              return pattern.align(sz);
+            })
+            .attr('fill', pattern.url());
+      
+      hLabel.attr('x', d => d.v[1] == null ? scaleI(d.v[0]) + DEFAULT_HIGHLIGHT_PADDING : DEFAULT_HIGHLIGHT_PADDING + scaleI(d.v[0]) + (scaleI(d.v[1]) - scaleI(d.v[0]))/2 )
+            .attr('y', _inset.top)
+            .text(d => d.l);
+                  
       _ptrim = trim;
     });
     
@@ -1010,6 +1153,59 @@ export default function lines(id) {
   _impl.id = function() {
     return id;
   };
+
+  _impl.defaultStyle = () => `
+                  ${fonts.fixed.cssImport}
+                  ${fonts.variable.cssImport}  
+                  ${_impl.self()} .axis line, 
+                  ${_impl.self()} .axis path { 
+                                              shape-rendering: crispEdges; 
+                                              stroke-width: ${widths.axis}; 
+                                              stroke: none;
+                                            }
+
+                  ${_impl.self()} g.axis-v line, 
+                  ${_impl.self()} g.axis-v path { 
+                                              stroke: ${axisDisplayValue === true ? display[theme].axis : 'none'}; 
+                                            }
+                                            
+                  ${_impl.self()} g.axis-i line, 
+                  ${_impl.self()} g.axis-i path { 
+                                              stroke: ${axisDisplayIndex === true ? display[theme].axis : 'none'}; 
+                                            }
+
+                  ${_impl.self()} g.axis-v-minor line,
+                  ${_impl.self()} g.axis-i-minor line { 
+                                              stroke: ${display[theme].axis}; 
+                                            }
+                                              
+                  ${_impl.self()} text { 
+                                        font-family: ${fonts.variable.family};
+                                        font-size: ${fonts.variable.sizeForWidth(width)};                
+                                      }
+                   
+                  ${_impl.self()} path.stroke { stroke-width: ${widths.data} }
+                  
+                  ${_impl.self()} g.axis-v line.grid,
+                  ${_impl.self()} g.axis-i line.grid { 
+                                             stroke-width: ${widths.grid}; 
+                                             stroke-dasharray: ${dashes.grid};
+                                             stroke: ${display[theme].grid};
+                                            }
+
+                  ${_impl.self()} g.axis-i g.tick line.grid.first,                  
+                  ${_impl.self()} g.axis-v g.tick line.grid.first {
+                                              stroke: none;
+                                            }
+                                            
+                  ${_impl.self()} .axis text, 
+                  ${_impl.self()} g.highlight text { 
+                                    font-family: ${fonts.fixed.family};
+                                    font-size: ${fonts.fixed.sizeForWidth(width)};                
+                                    font-weight: ${fonts.fixed.weightMonochrome};  
+                                    fill: ${display[theme].text}
+                                  }
+                `;
     
   _impl.classed = function(value) {
     return arguments.length ? (classed = value, _impl) : classed;
@@ -1122,10 +1318,6 @@ export default function lines(id) {
   _impl.displayTip = function(value) {
     return arguments.length ? (displayTip = value, _impl) : displayTip;
   };   
-  
-  _impl.highlight = function(value) {
-    return arguments.length ? (highlight = _coerceArray(value), _impl) : highlight;
-  };    
 
   _impl.gridValue = function(value) {
     return arguments.length ? (gridValue = value, _impl) : gridValue;
@@ -1223,6 +1415,18 @@ export default function lines(id) {
     return arguments.length ? (tipHtml = value, _impl) : tipHtml;
   };             
           
-              
+  _impl.highlightIndex = function(value) {
+    return arguments.length ? (highlightIndex = _coerceArray(value), _impl) : highlightIndex;
+  }; 
+  
+  _impl.axisDisplayValue = function(value) {
+    return arguments.length ? (axisDisplayValue = value, _impl) : axisDisplayValue;
+  };        
+
+  _impl.axisDisplayIndex = function(value) {
+    return arguments.length ? (axisDisplayIndex = value, _impl) : axisDisplayIndex;
+  };      
+  
+                
   return _impl;
 }
