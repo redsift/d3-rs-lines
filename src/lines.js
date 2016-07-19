@@ -83,18 +83,10 @@ import { tip } from '@redsift/d3-rs-tip';
 import { 
   presentation10,
   display,
-  patterns,
-  diagonals,
-  fontImportVariable,
-  fontImportFixed,
-  fontFamilyVariableWidth,
-  fontFamilyFixedWidth,
-  fontSizeForWidth,
-  fontWeightMonochrome,
-  dataWidth,
-  gridWidth,
-  gridDash,
-  axisWidth
+  highlights,
+  fonts,
+  widths,
+  dashes
 } from '@redsift/d3-rs-theme';
 
 export const intervals = {
@@ -265,7 +257,7 @@ const DEFAULT_TIP_OFFSET = 4;
 const DEFAULT_HIGHLIGHT_PADDING = 4;
 
 
-const DEFAULT_FILL_OPACITY = 0.33;
+// const DEFAULT_FILL_OPACITY = 0.33;
 
 /*
 [ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
@@ -312,7 +304,7 @@ export default function lines(id) {
       width = DEFAULT_SIZE,
       height = null,
       margin = DEFAULT_MARGIN,
-      style = null,
+      style = undefined,
       scale = 1.0,
       logValue = 0,
       minValue = null,
@@ -475,7 +467,7 @@ export default function lines(id) {
       if (_fillArea == null) _fillArea = true;
       if (_fillStroke == null) _fillStroke = false;      
     } else {
-      if (_fillOpacity == null) _fillOpacity = DEFAULT_FILL_OPACITY;
+      if (_fillOpacity == null) _fillOpacity = display[theme].fillOpacity;
       if (_fillArea == null) _fillArea = true;
       if (_fillStroke == null) _fillStroke = true;         
     }
@@ -503,10 +495,10 @@ export default function lines(id) {
       
       let pid = 'highlight-fill';
       if (id) pid = pid + '-' + id;
-      let pattern = diagonals(pid, patterns.highlight);
+      let pattern = highlights(pid);
 //      TODO: Could expose the colors for customization      
-      pattern.foreground(display[theme].highlight);
-      pattern.background('transparent');      
+//      pattern.foreground(display[theme].highlight);
+//      pattern.background('transparent');      
       snode.call(pattern);   
             
       let elmS = snode.select(root.child());
@@ -647,8 +639,9 @@ export default function lines(id) {
       let colors = _makeFillFn();
       
       // Create the legend
+      let lchart = null;
       if (legend.length > 0 && legendOrientation !== 'voronoi') {
-        let lchart = legends().width(w).height(h).inset(0).fill(colors).orientation(legendOrientation).spacing(7);
+        lchart = legends().width(w).height(h).inset(0).fill(colors).theme(theme).orientation(legendOrientation);
 
         _inset = lchart.childInset(_inset);
 
@@ -971,12 +964,16 @@ export default function lines(id) {
       }
 
       // Tip
-      // TODO: This has to be fixed in tip
       let _style = style;
-      if (_style == null) {
+      if (_style === undefined) {
         _style = _impl.defaultStyle();
+        
+        if (lchart != null) {
+          _style += lchart.defaultStyle();
+        }
       }
       let st = _style + ' ' + rtip.style();
+      // TODO: This has to be fixed in tip
       rtip.style(st);
       rtip.html(_tipHtml);
       elmS.call(rtip);
@@ -1013,7 +1010,7 @@ export default function lines(id) {
           .attr('fill', display[theme].axis);
           
         let circle = g.append('circle')
-          .attr('r', DEFAULT_TIP_CIRCLE_SIZE - 0.5)
+          .attr('r', DEFAULT_TIP_CIRCLE_SIZE - widths.outline)
           .attr('class', 'tip fill')
           .attr('cx', x)
           .attr('cy', y)
@@ -1087,6 +1084,7 @@ export default function lines(id) {
       vlabels.attr('x', d => d[0])
             .attr('y', d => d[1])
             .attr('fill', (d,i) => colors(d,i,'legend'))
+            .attr('font-weight', fonts.variable.weightColor) 
             .text((d, i) => i < legend.length ? legend[i] : '');
       
       
@@ -1130,15 +1128,14 @@ export default function lines(id) {
       
       hIndex.attr('y', _inset.top)
             .attr('height', h - _inset.bottom - _inset.top)
-            .attr('x', d => scaleI(d.v[0]) - (pattern.interval() / 2))
+            .attr('x', d => Math.round(scaleI(d.v[0]) - (pattern.size() / 2)))
             .attr('width', function(d) {
-              let minSz = pattern.interval();
-              if (d.v[1] == null) return minSz;
+              let sz = 1;
+              if (d.v[1] != null) {
+                sz = scaleI(d.v[1]) - scaleI(d.v[0]);                
+              }
               
-              let sz = scaleI(d.v[1]) - scaleI(d.v[0]);
-
-              if (sz < minSz) return minSz;
-              return sz;
+              return pattern.align(sz);
             })
             .attr('fill', pattern.url());
       
@@ -1158,12 +1155,12 @@ export default function lines(id) {
   };
 
   _impl.defaultStyle = () => `
-                  ${fontImportVariable}
-                  ${fontImportFixed}  
+                  ${fonts.fixed.cssImport}
+                  ${fonts.variable.cssImport}  
                   ${_impl.self()} .axis line, 
                   ${_impl.self()} .axis path { 
                                               shape-rendering: crispEdges; 
-                                              stroke-width: ${axisWidth}; 
+                                              stroke-width: ${widths.axis}; 
                                               stroke: none;
                                             }
 
@@ -1183,18 +1180,16 @@ export default function lines(id) {
                                             }
                                               
                   ${_impl.self()} text { 
-                                        font-family: ${fontFamilyVariableWidth};
-                                        font-size: ${fontSizeForWidth(width)};                
-                                        font-weight: ${fontWeightMonochrome}; 
-                                        fill: ${display[theme].text}; 
+                                        font-family: ${fonts.variable.family};
+                                        font-size: ${fonts.variable.sizeForWidth(width)};                
                                       }
                    
-                  ${_impl.self()} path.stroke { stroke-width: ${dataWidth} }
+                  ${_impl.self()} path.stroke { stroke-width: ${widths.data} }
                   
                   ${_impl.self()} g.axis-v line.grid,
                   ${_impl.self()} g.axis-i line.grid { 
-                                             stroke-width: ${gridWidth}; 
-                                             stroke-dasharray: ${gridDash};
+                                             stroke-width: ${widths.grid}; 
+                                             stroke-dasharray: ${dashes.grid};
                                              stroke: ${display[theme].grid};
                                             }
 
@@ -1205,7 +1200,10 @@ export default function lines(id) {
                                             
                   ${_impl.self()} .axis text, 
                   ${_impl.self()} g.highlight text { 
-                                   font-family: ${fontFamilyFixedWidth} 
+                                    font-family: ${fonts.fixed.family};
+                                    font-size: ${fonts.fixed.sizeForWidth(width)};                
+                                    font-weight: ${fonts.fixed.weightMonochrome};  
+                                    fill: ${display[theme].text}
                                   }
                 `;
     
