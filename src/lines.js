@@ -79,7 +79,7 @@ import {
 import { html as svg } from '@redsift/d3-rs-svg';
 import { svg as legends } from '@redsift/d3-rs-legends';
 import { units, time } from '@redsift/d3-rs-intl';
-import { tip } from '@redsift/d3-rs-tip';
+import { body as tip } from '@redsift/d3-rs-tip';
 import { 
   presentation10,
   display,
@@ -256,47 +256,6 @@ const DEFAULT_TIP_CIRCLE_SIZE = 4;
 const DEFAULT_TIP_OFFSET = 4;
 const DEFAULT_HIGHLIGHT_PADDING = 4;
 
-
-// const DEFAULT_FILL_OPACITY = 0.33;
-
-/*
-[ "@import url(https://fonts.googleapis.com/css?family=Source+Code+Pro:300,500); @import 'https://fonts.googleapis.com/css?family=Raleway:400,500';",
-                        ".axis text, g.highlight text { font-family: 'Source Code Pro', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-weight: 300; fill: " + display.text.black + "; }",
-                        ".voronoi text{ font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 500 }",
-                        ".chart-legends text, g.highlight text.supplied { font-size: 14px; font-family: 'Raleway', sans-serif; font-weight: 300; fill: " + display.text.black + "; }",
-                        ".axis path, .axis line { fill: none; stroke: " + display.lines.seperator + "; shape-rendering: crispEdges; }",
-                        "g.axis-v path { stroke: none }",
-                        "g.highlight text { font-size: 14px; }",
-            
-                        "g.axis-i path, g.axis-i g.tick line, g.axis-i-minor g.tick line { stroke-width: 1.0px; stroke: " + display.text.black + " }",
-
-                        "line { stroke-width: 1.5px }",
-                        "line.grid, g.axis-i g.tick line.grid { stroke-width: 2.0px; stroke-dasharray: 2,2; stroke: " + display.lines.seperator + " }",
-                        ".legend text { font-size: 12px }",
-                        "path.stroke { stroke-width: 2.5px }",
-                        ".voronoi path { stroke: none }"
-                      ].join(' \n');
-
-
-                        "path.series-0 { stroke: red }",
-                        "path.series-1 { stroke: green }",
-                        "path.series-2 { stroke: orange }",
-                        "path.series-3 { stroke: grey }" 
-                        */
-/*
-function template(strings, ...keys) {
-  return (function(...values) {
-    var dict = values[values.length - 1] || {};
-    var result = [strings[0]];
-    keys.forEach(function(key, i) {
-      var value = Number.isInteger(key) ? values[key] : dict[key];
-      result.push(value, strings[i + 1]);
-    });
-    return result.join('');
-  });
-}
-*/
-
 export default function lines(id) {
   let classed = 'chart-lines', 
       theme = 'light',
@@ -329,6 +288,7 @@ export default function lines(id) {
       fillStroke = null,
       language = null,
       stacked = null,
+      onClick = null,
       stackOrder = stackOrderNone, 
       stackOffset = stackOffsetNone,
       voronoiAttraction = 0.33,
@@ -966,17 +926,58 @@ export default function lines(id) {
       // Tip
       let _style = style;
       if (_style === undefined) {
-        _style = _impl.defaultStyle();
+        _style = _impl.defaultStyle(theme, width);
         
         if (lchart != null) {
-          _style += lchart.defaultStyle();
+          _style += lchart.defaultStyle(theme, width);
         }
+
+        _style += rtip.defaultStyle(theme);
+        rtip.style(null);
       }
-      let st = _style + ' ' + rtip.style();
-      // TODO: This has to be fixed in tip
-      rtip.style(st);
+
       rtip.html(_tipHtml);
       elmS.call(rtip);
+
+
+      let defsEl = snode.select('defs');
+      if (defsEl.empty()) {
+        defsEl = snode.append('defs');
+      }
+      
+      let styleEl = defsEl.selectAll('style' + (id ?  '#style-lines-' + id : '.style-' + classed)).data(_style ? [ _style ] : []);
+      styleEl.exit().remove();
+      styleEl = styleEl.enter()
+                  .append('style')
+                    .attr('type', 'text/css')
+                    .attr('id', (id ?  'style-lines-' + id : null))
+                    .attr('class', (id ?  null : 'style-' + classed))
+                  .merge(styleEl);
+      styleEl.text(s => s);
+
+      vmesh.on('click', function (d) {
+        let s = d.data[2];
+        let i = d.data[3];
+        
+        let item = data[s][i];
+        
+        if (stacked === true) {
+          // Quick hack to ignore empty series by scanning downward
+          while (item == null || (item[1][1] - item[1][0] === 0)) {
+            s = s - 1;
+            if (s < 0) break;
+            item = data[s][i];
+          }
+        }
+        
+        let nested = item[1].data;
+        
+        if (nested !== undefined) {
+          item = nested;
+        }
+        
+        if (onClick) onClick(item);
+      });
 
       vmesh.on('mouseover', function (d) {
         let s = d.data[2];
@@ -1154,7 +1155,7 @@ export default function lines(id) {
     return id;
   };
 
-  _impl.defaultStyle = () => `
+  _impl.defaultStyle = (_theme, _width) => `
                   ${fonts.fixed.cssImport}
                   ${fonts.variable.cssImport}  
                   ${_impl.self()} .axis line, 
@@ -1166,22 +1167,22 @@ export default function lines(id) {
 
                   ${_impl.self()} g.axis-v line, 
                   ${_impl.self()} g.axis-v path { 
-                                              stroke: ${axisDisplayValue === true ? display[theme].axis : 'none'}; 
+                                              stroke: ${axisDisplayValue === true ? display[_theme].axis : 'none'}; 
                                             }
                                             
                   ${_impl.self()} g.axis-i line, 
                   ${_impl.self()} g.axis-i path { 
-                                              stroke: ${axisDisplayIndex === true ? display[theme].axis : 'none'}; 
+                                              stroke: ${axisDisplayIndex === true ? display[_theme].axis : 'none'}; 
                                             }
 
                   ${_impl.self()} g.axis-v-minor line,
                   ${_impl.self()} g.axis-i-minor line { 
-                                              stroke: ${display[theme].axis}; 
+                                              stroke: ${display[_theme].axis}; 
                                             }
                                               
                   ${_impl.self()} text { 
                                         font-family: ${fonts.variable.family};
-                                        font-size: ${fonts.variable.sizeForWidth(width)};                
+                                        font-size: ${fonts.variable.sizeForWidth(_width)};                
                                       }
                    
                   ${_impl.self()} path.stroke { stroke-width: ${widths.data} }
@@ -1190,7 +1191,7 @@ export default function lines(id) {
                   ${_impl.self()} g.axis-i line.grid { 
                                              stroke-width: ${widths.grid}; 
                                              stroke-dasharray: ${dashes.grid};
-                                             stroke: ${display[theme].grid};
+                                             stroke: ${display[_theme].grid};
                                             }
 
                   ${_impl.self()} g.axis-i g.tick line.grid.first,                  
@@ -1201,9 +1202,9 @@ export default function lines(id) {
                   ${_impl.self()} .axis text, 
                   ${_impl.self()} g.highlight text { 
                                     font-family: ${fonts.fixed.family};
-                                    font-size: ${fonts.fixed.sizeForWidth(width)};                
+                                    font-size: ${fonts.fixed.sizeForWidth(_width)};                
                                     font-weight: ${fonts.fixed.weightMonochrome};  
-                                    fill: ${display[theme].text}
+                                    fill: ${display[_theme].text}
                                   }
                 `;
     
@@ -1426,6 +1427,10 @@ export default function lines(id) {
   _impl.axisDisplayIndex = function(value) {
     return arguments.length ? (axisDisplayIndex = value, _impl) : axisDisplayIndex;
   };      
+  
+  _impl.onClick = function(value) {
+    return arguments.length ? (onClick = value, _impl) : onClick;
+  };   
   
                 
   return _impl;
