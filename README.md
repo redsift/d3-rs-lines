@@ -71,6 +71,7 @@ Property|Description|Transition|Preview
 `animation`|*String* `reveal`, `value`, `default`
 `trim`|*Integer* Level to trim the array to
 `tipHtml`|*String, Function* parameters of the function are `(d, i, s)` where `d` is the data element, `i` is the index, `s` is the series of the data
+`onClick`|*Function* handler for a click event on the data series
 
 ### Time
 

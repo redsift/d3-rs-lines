@@ -22,7 +22,7 @@
     
     d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('basic'));
     
-    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('dark').theme('dark'));
+    d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('dark').theme('dark').onClick(d => console.log('Clicked:', d)));
 
     d3.select('#elm').datum([ 0, 1, 4, 6, 2, 8, 9 ]).call(d3_rs_lines.html('currency').fillArea(false).tickCountIndex(3).tickFormatIndex('($.1f'));
 

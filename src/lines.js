@@ -288,6 +288,7 @@ export default function lines(id) {
       fillStroke = null,
       language = null,
       stacked = null,
+      onClick = null,
       stackOrder = stackOrderNone, 
       stackOffset = stackOffsetNone,
       voronoiAttraction = 0.33,
@@ -954,6 +955,33 @@ export default function lines(id) {
                   .merge(styleEl);
       styleEl.text(s => s);
 
+      vmesh.on('click', function (d) {
+        let s = d.data[2];
+        let i = d.data[3];
+        
+        let item = data[s][i];
+        
+        if (stacked === true) {
+          // Quick hack to ignore empty series by scanning downward
+          while (item == null || (item[1][1] - item[1][0] === 0)) {
+            s = s - 1;
+            if (s < 0) break;
+            item = data[s][i];
+          }
+        }
+                
+        let y = scaleV(item[1][1]);
+        let x = scaleI(item[0]);
+        
+        let nested = item[1].data;
+        
+        if (nested !== undefined) {
+          item = nested;
+        }
+        
+        if (onClick) onClick(item);
+      });
+
       vmesh.on('mouseover', function (d) {
         let s = d.data[2];
         let i = d.data[3];
@@ -1402,6 +1430,10 @@ export default function lines(id) {
   _impl.axisDisplayIndex = function(value) {
     return arguments.length ? (axisDisplayIndex = value, _impl) : axisDisplayIndex;
   };      
+  
+  _impl.onClick = function(value) {
+    return arguments.length ? (onClick = value, _impl) : onClick;
+  };   
   
                 
   return _impl;
