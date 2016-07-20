@@ -969,9 +969,6 @@ export default function lines(id) {
             item = data[s][i];
           }
         }
-                
-        let y = scaleV(item[1][1]);
-        let x = scaleI(item[0]);
         
         let nested = item[1].data;
         
