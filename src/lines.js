@@ -326,7 +326,7 @@ export default function lines(id) {
       
   let tid = null;
   if (id) tid = 'tip-' + id;
-  let rtip = tip(tid).offset([- DEFAULT_TIP_CIRCLE_SIZE - DEFAULT_TIP_OFFSET, 0]);
+  let rtip = tip(tid).offset([- DEFAULT_TIP_CIRCLE_SIZE - DEFAULT_TIP_OFFSET, 0]).style(null);
       
   // [ [ [i1,v1], [i1,v1] ], [ [i2,v2] ... ], ... ]
   function _flatArrays(a) {
@@ -601,7 +601,9 @@ export default function lines(id) {
       // Create the legend
       let lchart = null;
       if (legend.length > 0 && legendOrientation !== 'voronoi') {
-        lchart = legends().width(w).height(h).inset(0).fill(colors).theme(theme).orientation(legendOrientation);
+        let lid = null;
+        if (id) lid = `legend-${id}`;
+        lchart = legends(lid).width(w).height(h).style(null).margin(0).inset(0).fill(colors).theme(theme).orientation(legendOrientation);
 
         _inset = lchart.childInset(_inset);
 
@@ -926,14 +928,8 @@ export default function lines(id) {
       // Tip
       let _style = style;
       if (_style === undefined) {
-        _style = _impl.defaultStyle(theme, width);
-        
-        if (lchart != null) {
-          _style += lchart.defaultStyle(theme, width);
-        }
-
-        _style += rtip.defaultStyle(theme);
-        rtip.style(null);
+        // build a style sheet from the embedded charts
+        _style = [ _impl, lchart, rtip ].filter(c => c != null).reduce((p, c) => p + c.defaultStyle(theme, w), '');
       }
 
       rtip.html(_tipHtml);
@@ -1008,6 +1004,7 @@ export default function lines(id) {
           .attr('class', 'tip outline')
           .attr('cx', x)
           .attr('cy', y)
+          .attr('pointer-events', 'none')
           .attr('fill', display[theme].axis);
           
         let circle = g.append('circle')
@@ -1015,6 +1012,7 @@ export default function lines(id) {
           .attr('class', 'tip fill')
           .attr('cx', x)
           .attr('cy', y)
+          .attr('pointer-events', 'none')
           .attr('fill', colors(item, s));
 
         rtip.show.apply(circle.node(), [ item, i, s ]);
