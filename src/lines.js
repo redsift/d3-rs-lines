@@ -1113,11 +1113,11 @@ export default function lines(id) {
       let hLabel = g.select('g.highlight-v').selectAll('text').data(_highlightIndex);
       hLabel.exit().remove();
       hLabel = hLabel.enter().append('text')    
-            .attr('dominant-baseline', 'text-before-edge')  
+            .attr('dominant-baseline', 'text-after-edge')  
             .merge(hLabel);
 
       hLabel
-        .attr('text-anchor', d => d.v[1] == null ? 'start' : 'middle')
+        .attr('text-anchor', 'middle')
         .attr('class', d => d.c);  
 
       if (transition === true) {
