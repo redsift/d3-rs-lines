@@ -30,8 +30,8 @@
 
 ### ES6
 
-    import { chart } from "@redsift/d3-rs-lines";
-    let eml = chart.html();
+    import { html as chart } from "@redsift/d3-rs-lines";
+    let eml = chart();
     ...
 
 ### Require
