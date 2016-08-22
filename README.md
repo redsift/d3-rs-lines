@@ -30,8 +30,8 @@
 
 ### ES6
 
-    import { chart } from "@redsift/d3-rs-lines";
-    let eml = chart.html();
+    import { html as chart } from "@redsift/d3-rs-lines";
+    let eml = chart();
     ...
 
 ### Require
@@ -52,18 +52,18 @@ Property|Description|Transition|Preview
 `width`, `height`, `size`, `scale`|*Integer* SVG container sizes|Y|[Pen](...)
 `style`|*String* Custom CSS to inject into chart|N
 `minValue`,`maxValue`|*Number* Sets the minimum and maximum Value scale range. Note that for log scales, minValue must be > 0.|Y
-`tickCountIndex`,`tickCountValue`|*Number, String, Interval Function* Hints at the number of ticks to set in the corresponding axis. Supports strings for example (time intervals)[https://github.com/d3/d3-time#intervals]
+`tickCountIndex`,`tickCountValue`|*Number, String, Interval Function* Hints at the number of ticks to set in the corresponding axis. Supports strings for example [time intervals](https://github.com/d3/d3-time#intervals)
 `tickMinorIndex`, `tickMinorValue`|*Number, String, Interval Function* Hints at the number of minor ticks to set in the corresponding axis.
 `tickFormatIndex`, `tickFormatValue`|*String, Function* Sets the formatting string or function for the ticks
 `tickDisplayIndex`, `tickDisplayValue`|*Function* Alternatively you can customise all tick presentation logic with this function
-`curve`|*String, Function*, https://github.com/d3/d3-shape#curves, excluding closed and open curves. If a function is supplied, it should implement https://github.com/d3/d3-shape#custom-curves
-`symbol`|*(Array of) String, Function* https://github.com/d3/d3-shape#symbolCircle or https://github.com/d3/d3-shape#custom-symbol-types
+`curve`|*String, Function*, [curves](https://github.com/d3/d3-shape#curves), excluding closed and open curves. If a function is supplied, it should implement [custom-curves](https://github.com/d3/d3-shape#custom-curves)
+`symbol`|*(Array of) String, Function* [symbol circle](https://github.com/d3/d3-shape#symbolCircle) or [custom symbol types](https://github.com/d3/d3-shape#custom-symbol-types)
 `legendOrientation`|*String* top, left, bottom, right, voronoi
 `voronoiAttraction`|*Number -1...0...1* When using the voronoi legendOrientation, how far the label is dragged to the data line. 0 implies no dragging, -1 pushes the labels away
 `fill`|*String, Array, Function* If function, in addition to usual *data*, *index* parameters, a 3rd string parameter indicates the context - one of `area`, `stroke`, `symbol`, `legend`   
 `fillAreaOpacity`|*Unit Number* 
 `fillArea`, `fillStroke`|*Boolean, Array[Boolean]* Sets if the lines should be filled or stroked. By default is set appropriately for line and stack presentation
-`stackOffset`, `stackOrder`|*String, Array, Function* https://github.com/d3/d3-shape#stack-orders https://github.com/d3/d3-shape#stack-offsets
+`stackOffset`, `stackOrder`|*String, Array, Function* [stack orders](https://github.com/d3/d3-shape#stack-orders) [stack offsets](https://github.com/d3/d3-shape#stack-offsets)
 `animation`|*String* `reveal`, `value`, `default`
 `trim`|*Integer* Level to trim the array to
 `tipHtml`|*String, Function* parameters of the function are `(d, i, s)` where `d` is the data element, `i` is the index, `s` is the series of the data
