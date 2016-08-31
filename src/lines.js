@@ -690,7 +690,7 @@ export default function lines(id) {
       
       let aIMinor = null;
       if (tickMinorIndex !== null) {
-        let density = tickMinorIndex;
+        let density = [ tickMinorIndex ];
         if (labelTime != null) {
           density = _mapIntervalTickCount(tickMinorIndex);
         }
