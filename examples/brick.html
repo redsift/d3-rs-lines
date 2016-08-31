@@ -535,7 +535,16 @@
                       
     d3.select('#elm').datum(TIMES).call(bars).call(pattern);
 
+    let chart = d3_rs_lines.html('legend')
+        .legend('Redsift') //add title to legend
+        .legendOrientation('top') //legend orienatation set to voronoi which has the text displayed in the middle.
+        .tickFormatValue('.2f') //value set to 2sf
+          .scale(1.5);
+        
 
+    d3.select('#elm')
+        .datum([1,2,3,10,20])
+        .call(chart);
     </script>
   </body>
 </html>
