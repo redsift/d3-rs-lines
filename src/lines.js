@@ -616,7 +616,7 @@ export default function lines(id) {
         .attr('x', _inset.left)
         .attr('y', -(_inset.top + marginTop))
         .attr('width', w - _inset.right - _inset.left)
-        .attr('height', h - _inset.bottom - _inset.top + marginTop);           
+        .attr('height', h - _inset.bottom + _inset.top + marginTop);           
       
       let sV = scaleLinear(); 
       if (logValue > 0) sV = scaleLog().base(logValue);
@@ -690,7 +690,7 @@ export default function lines(id) {
       
       let aIMinor = null;
       if (tickMinorIndex !== null) {
-        let density = tickMinorIndex;
+        let density = [ tickMinorIndex ];
         if (labelTime != null) {
           density = _mapIntervalTickCount(tickMinorIndex);
         }
