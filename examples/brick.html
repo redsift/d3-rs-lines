@@ -545,6 +545,30 @@
     d3.select('#elm')
         .datum([1,2,3,10,20])
         .call(chart);
+
+  let tips = d3_rs_lines.html('tips')
+    .tickCountIndex('utcMonth')
+    .labelTime('multi')
+    .legend(['new', 'reduced'])
+    .niceIndex(false)
+    .animation('value')
+    .curve('curveLinear')
+    .symbol(['symbolSquare', 'symbolSquare'])
+    .tipHtml((d, i, s) => {
+      console.log('tipHtml: ', d, i, s);
+    });    
+    
+    d3.select('#elm')
+    .datum([{
+      l: 1451606400000,
+      v: [100, 50]
+    },
+    {
+      l: 1454284800000,
+      v: [155, 105]  
+    }])
+    .call(tips);
+
     </script>
   </body>
 </html>
