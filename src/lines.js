@@ -981,6 +981,8 @@ export default function lines(id) {
         
         let item = data[s][i];
         
+        let y = 0;
+
         if (stacked === true) {
           // Quick hack to ignore empty series by scanning downward
           while (item == null || (item[1][1] - item[1][0] === 0)) {
@@ -988,9 +990,13 @@ export default function lines(id) {
             if (s < 0) break;
             item = data[s][i];
           }
+          y = scaleV(item[1][1]);
+        } else {
+          item = [ d.data[0], d.data[1] ];
+          y = scaleV(item[1]);
         }
                 
-        let y = scaleV(item[1][1]);
+         
         let x = scaleI(item[0]);
         
         let nested = item[1].data;
