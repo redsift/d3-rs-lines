@@ -910,7 +910,7 @@ export default function lines(id) {
           if (stacked === true) {
             y = v[1][s];
           } else {
-            y = v[1][1];
+            y = v[1];
           }
 
           if (fmtX != null) {
@@ -920,7 +920,7 @@ export default function lines(id) {
           if (fmtY != null) {
             y = fmtY(y);
           }
-           
+
           return x + ', ' + y;
         }
       }
@@ -1004,7 +1004,7 @@ export default function lines(id) {
         if (nested !== undefined) {
           item = nested;
         }
-        
+
         g.append('circle')
           .attr('r', DEFAULT_TIP_CIRCLE_SIZE)
           .attr('class', 'tip outline')
