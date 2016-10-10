@@ -12,11 +12,11 @@
 
 ### Line chart
 
-![Sample bars with a bottom orientation](https://bricks.redsift.io/reusable/d3-rs-lines.svg?_datum=[1,200,3100,1000]&orientation=bottom)
+![Sample bars with a bottom orientation](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,200,3100,1000]&orientation=bottom)
 
 ### Multiple series
 
-![Sample bars with a left orientation](https://bricks.redsift.io/reusable/d3-rs-lines.svg?_datum=[[1,2,4],[0,1]])
+![Sample bars with a left orientation](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[[1,2,4],[0,1]])
 
 ## Usage
 
@@ -42,8 +42,11 @@
 
 ### Datum
 
-- Simplest form, array of numbers: `[1,2,3,4...]`
-- Data series and how it relates to the API. 
+- Simplest form, array of numbers: `[1,2,3,4...]` 
+- Datum includes parameters, **Index** and **Value** which form `[{ "l": 1,"v":1},{"l": 4,"v":6}]`, `l` representing the Index and `v` the Value. The simple datum generate a line starting at (1,1) and ending at (4,6). [View Datum result on Bricks.](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[{%20%22l%22:%201,%22v%22:1},{%22l%22:%204,%22v%22:6}])
+- A set of line charts that can be achieved using different **Value** data `[{"l":1,"v":[1,2,3]},{"l":2,"v":[3,2,1]},{"l":3,"v":[2,1,3]}]`. [View Datum result on Bricks.](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[{%22l%22:1,%22v%22:[1,2,3]},{%22l%22:2,%22v%22:[3,2,1]},{%22l%22:3,%22v%22:[2,1,3]}])
+- Else generating each line separately in a datum array `[[{"l":1,"v":3},{"l":2,"v":5}],[{"l":1,"v":1},{"l":6,"v":7}]]`. [View Datum result on Bricks.](https://bricks.redsift.io/reusable/d3-rs-lines.svg?_datum=[[{%22l%22:1,%22v%22:3},{%22l%22:2,%22v%22:5}],[{%22l%22:1,%22v%22:1},{%22l%22:6,%22v%22:7}]]) 
+- Datum supports unix timestamp data-set 
 
 ### Parameters
 
@@ -64,7 +67,7 @@ Property|Description|Transition|Preview
 `trim`| *Integer* Trim the datum array, use for slicing the data on the chart. | N | [<img src="https://static.redsift.io/assets/d3-rs-lines/trim.png" height="100" width="320">](http://codepen.io/geervesh/pen/rrWaRg)<br>Examples: [CodePen](http://codepen.io/geervesh/pen/rrWaRg)
 `minValue`,`maxValue`| *Number* Sets the minimum and maximum Value range. Note that for log scales, `minValue` must be > 0.|Y | [<img src="https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&minValue=1.0&maxValue=5.0">](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&minValue=1.0&maxValue=5.0)<br>Examples: [Bricks](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&minValue=1.0&maxValue=5.0) / [CodePen](http://codepen.io/geervesh/pen/bZjprd)
 `minIndex` ,`maxIndex`  | *Number* Sets the minimum and maximum Index range. Note that for log scales, `minIndex` must be > 0. |Y | [<img src="https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&minIndex=0.5&maxIndex=3.0">](hhttps://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&minIndex=0.5&maxIndex=3.0)<br>Examples: [Bricks](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&minIndex=0.5&maxIndex=3.0) / [CodePen](http://codepen.io/geervesh/pen/qNybzX)
-`tickCountIndex`,`tickCountValue`|*Number, String, Interval Function* Hints at the number of ticks to set in the corresponding axis. Supports strings for example split [time intervals](https://github.com/d3/d3-time#intervals) when using epoch time Index values. `Default tickCountIndex: 6` | N | [<img src="https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickCountIndex=2&tickCountValue=4">](ttps://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickCountIndex=2&tickCountValue=4)<br>Examples: [Bricks](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickCountIndex=2&tickCountValue=4) / [CodePen](http://codepen.io/geervesh/pen/QEVPJk)
+`tickCountIndex`,`tickCountValue`|*Number, String, Interval Function* Hints at the number of ticks to set in the corresponding axis. Supports strings for example split [time intervals](https://github.com/d3/d3-time#intervals) when using Unix timestamp(or epoch time) Index values. `Default tickCountIndex: 6` | N | [<img src="https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickCountIndex=2&tickCountValue=4">](ttps://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickCountIndex=2&tickCountValue=4)<br>Examples: [Bricks](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickCountIndex=2&tickCountValue=4) / [CodePen](http://codepen.io/geervesh/pen/QEVPJk)
 `tickMinorIndex`, `tickMinorValue`|*Number, String, Interval Function* Hints at the number of minor ticks to set in the corresponding axis. | N | [<img src="https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickMinorIndex=50&tickMinorValue=10">](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickMinorIndex=50&tickMinorValue=10)<br>Examples: [Bricks](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickMinorIndex=50&tickMinorValue=10) / [CodePen](http://codepen.io/geervesh/pen/XKPGBY)
 `tickFormatIndex`, `tickFormatValue`|*String, Function* Sets the formatting string or function for the ticks. | N| [<img src="https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickFormatIndex=.2f&tickFormatValue=($.1s">](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickFormatIndex=.2f&tickFormatValue=($.1s))<br>Examples: [Bricks](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickFormatIndex=.2f&tickFormatValue=($.1s)) / [CodePen](http://codepen.io/geervesh/pen/wWEQXz)
 `tickDisplayIndex`, `tickDisplayValue`|*String, Integer* Customise all tick presentation logic with this function. | N | [<img src="https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickDisplayIndex='Red'&tickDisplayValue=6">](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickDisplayIndex='Red'&tickDisplayValue=6)<br>Examples: [Bricks](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[1,2,3,10,20]&tickDisplayIndex='Red'&tickDisplayValue=6) / [CodePen](http://codepen.io/geervesh/pen/YWOgqB)
