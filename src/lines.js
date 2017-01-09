@@ -908,7 +908,8 @@ export default function lines(id) {
           let x = v[0];
           let y = 0;
           if (stacked === true) {
-            y = v[1][s];
+            y = (s === -1) ? 0 : v[1][s];
+
           } else {
             y = v[1];
           }
