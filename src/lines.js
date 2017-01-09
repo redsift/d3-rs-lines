@@ -300,6 +300,7 @@ export default function lines(id) {
       axisDisplayValue = false,
       animation = null,
       tipHtml = null,
+      importFonts = true,
       trim = null,
       _ptrim = null,
       legendOrientation = 'bottom',
@@ -1161,8 +1162,8 @@ export default function lines(id) {
   };
 
   _impl.defaultStyle = (_theme, _width) => `
-                  ${fonts.fixed.cssImport}
-                  ${fonts.variable.cssImport}  
+                  ${_impl.importFonts() ? fonts.fixed.cssImport : ''}
+                  ${_impl.importFonts() ? fonts.variable.cssImport : ''}  
                   ${_impl.self()} .axis line, 
                   ${_impl.self()} .axis path { 
                                               shape-rendering: crispEdges; 
@@ -1212,7 +1213,11 @@ export default function lines(id) {
                                     fill: ${display[_theme].text}
                                   }
                 `;
-    
+  
+  _impl.importFonts = function(value) {
+    return arguments.length ? (importFonts = value, _impl) : importFonts;
+  };
+
   _impl.classed = function(value) {
     return arguments.length ? (classed = value, _impl) : classed;
   };
