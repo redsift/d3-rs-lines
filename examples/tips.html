@@ -1,0 +1,82 @@
+<html>
+  <head>
+    <style>
+      
+    body {
+      margin: 0px;
+    }
+
+    </style>    
+  </head>
+  <body>
+    <div id="elm"></div>
+        
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="//static.redsift.io/reusable/d3-rs-theme/latest/d3-rs-theme.umd-es2015.min.js"></script>
+    <script src="/d3-rs-lines.umd-es2015.min.js"></script>
+    <script>
+
+    'use strict';
+
+    const data = [{
+      l: 1441606400000,
+      v: [0, 50]
+    },
+    {
+      l: 1451606400000,
+      v: [100, 50]
+    },
+    {
+      l: 1454284800000,
+      v: [155, 105]  
+    }];
+
+    let defaultTips = d3_rs_lines.html('default')
+      .tickCountIndex('utcMonth')
+      .labelTime('multi')
+      .legend(['new', 'reduced'])
+      .niceIndex(false)
+      .animation('value')
+      .curve('curveLinear')
+      .symbol(['symbolSquare', 'symbolSquare']); 
+    
+    d3.select('#elm')
+    .datum(data)
+    .call(defaultTips);
+
+    const tipHtml = (d, i, s) => {
+      console.log('tipHtml: ', d, i, s);
+      return d[1];
+    };
+
+    let tips = d3_rs_lines.html('tips')
+      .tickCountIndex('utcMonth')
+      .labelTime('multi')
+      .legend(['new', 'reduced'])
+      .niceIndex(false)
+      .animation('value')
+      .curve('curveLinear')
+      .symbol(['symbolSquare', 'symbolSquare'])
+      .tipHtml(tipHtml);    
+    
+    d3.select('#elm')
+    .datum(data)
+    .call(tips);
+
+    let stacked = d3_rs_lines.html('stacked')
+      .tickCountIndex('utcMonth')
+      .labelTime('multi')
+      .legend(['new', 'reduced'])
+      .niceIndex(false)
+      .animation('value')
+      .curve('curveLinear')
+      .symbol(['symbolSquare', 'symbolSquare'])
+      .stacked(true);  
+
+    d3.select('#elm')
+    .datum(data)
+    .call(stacked);
+
+    </script>
+  </body>
+</html>
