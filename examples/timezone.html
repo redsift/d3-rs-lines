@@ -1,0 +1,31 @@
+<html>
+  <head>
+    <style>
+      
+    body {
+      margin: 0px;
+    }
+
+    </style>    
+  </head>
+  <body>
+    <div id="elm"></div>
+        
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="//static.redsift.io/reusable/d3-rs-theme/latest/d3-rs-theme.umd-es2015.min.js"></script>
+    <script src="/d3-rs-lines.umd-es2015.min.js"></script>
+    <script>
+
+    'use strict';
+
+    var TIMES = [{"l":1490054400000,"v":[242,1]},{"l":1490140800000,"v":[180,0]},{"l":1490227200000,"v":[213,0]},{"l":1490313600000,"v":[135,0]},{"l":1490400000000,"v":[60,0]},{"l":1490486400000,"v":[44,0]},{"l":1490572800000,"v":[251,0]},{"l":1490659200000,"v":[183,0]},{"l":1490745600000,"v":[208,0]},{"l":1490832000000,"v":[0,0]}];
+    
+    let tz = d3_rs_lines.html().legend(['pass', 'fail']).fill(['red', 'green']).curve('curveStep').stacked(true);
+                      
+    d3.select('#elm')
+      .datum(TIMES) 
+        .call(tz.labelTime('multi-local'));
+
+    </script>
+  </body>
+</html>

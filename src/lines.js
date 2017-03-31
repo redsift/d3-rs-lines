@@ -674,6 +674,8 @@ export default function lines(id) {
           aI.tickFormat(labelTime);          
         } else if (labelTime === 'multi') {
           aI.tickFormat(timeMultiFormat());       
+        }  else if (labelTime === 'multi-local') {
+          aI.tickFormat(timeMultiFormat({ localtime: true }));       
         } else {
           aI.tickFormat(timeFormat(labelTime));          
         }
@@ -880,7 +882,11 @@ export default function lines(id) {
         } else if (labelTime === 'multi') {
           let tf = timeFormatLocale(localeTime).format;
           
-          fmtX = timeMultiFormat(false, tf);       
+          fmtX = timeMultiFormat({ localtime: false } , tf);       
+        } else if (labelTime === 'multi-local') {
+          let tf = timeFormatLocale(localeTime).format;
+          
+          fmtX = timeMultiFormat({ localtime: true } , tf);       
         } else {
           let tf = timeFormatLocale(localeTime);
           
