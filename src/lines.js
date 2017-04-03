@@ -885,8 +885,9 @@ export default function lines(id) {
           fmtX = timeMultiFormat({ localtime: false } , tf);       
         } else if (labelTime === 'multi-local') {
           let tf = timeFormatLocale(localeTime).format;
-          
-          fmtX = timeMultiFormat({ localtime: true } , tf);       
+          //TODO: Temp fix related to https://github.com/redsift/d3-rs-lines/issues/6
+          // needs a refactor to properly support time zones
+          fmtX = timeMultiFormat({ localtime: false } , tf);       
         } else {
           let tf = timeFormatLocale(localeTime);
           
