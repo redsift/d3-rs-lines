@@ -568,12 +568,14 @@ export default function lines(id) {
       });
 
       g.datum(data); // this rebind is required even though there is a following select
-
+        
       let minV = minValue;
       if (minV == null) {
         minV = min(data, d => min(d, d1 => min(d1[1]) ));
         if (minV > 0) {
           minV = logValue === 0 ? 0 : 1;
+        } else if (logValue > 0 && minV < 1) {
+          minV = 1;
         }
       }
             
@@ -733,17 +735,18 @@ export default function lines(id) {
         .selectAll('line')
           .attr('class', (d, i) => gridIndex ? i === 0 ? 'grid first' : 'grid' : null);
             
-      
+      const safeScaleV = (v) => (logValue > 0 && v < 1) ? scaleV.range()[0] : scaleV(v);
+
       // Note: A lot of scaleI, scaleV calls.    
       let lines = line()
         .x(d => scaleI(d[0]))
-        .y(d => scaleV(d[1][1]));
+        .y(d => safeScaleV(d[1][1]));
       // These can be truncated .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);
 
       let areas = area()
           .x(d => scaleI(d[0]))
-          .y0(d => scaleV(d[1][0])) // bottom
-          .y1(d => scaleV(d[1][1])); // top
+          .y0(d => safeScaleV(d[1][0]) ) // bottom
+          .y1(d => safeScaleV(d[1][1]) ); // top
  
       
       let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
@@ -926,7 +929,7 @@ export default function lines(id) {
             x = fmtX(x);
           }
                     
-          if (fmtY != null) {
+          if (fmtY != null && logValue === 0) {
             y = fmtY(y);
           }
 
