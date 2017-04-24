@@ -1,0 +1,53 @@
+<html>
+  <head>
+    <style>
+      
+    body {
+      margin: 0px;
+    }
+
+    </style>    
+  </head>
+  <body>
+    <div id="elm"></div>
+        
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="//static.redsift.io/reusable/d3-rs-theme/latest/d3-rs-theme.umd-es2015.min.js"></script>
+    <script src="/d3-rs-lines.umd-es2015.min.js"></script>
+    <script>
+
+    'use strict';
+
+let log = d3_rs_lines.html('log')
+    .tickCountIndex('utcMonth')
+    .labelTime('multi')
+    .niceIndex(true)
+    .stacked(true)
+    .curve('curveStep')
+    .logValue(10);
+
+    d3.select('#elm')
+    .datum([{
+      l: 1451406400000,
+      v: [1, 1]
+    },{
+      l: 1451606400000,
+      v: [1000, 50]
+    },
+    {
+      l: 1454284800000,
+      v: [285, 151]  
+    },
+    {
+      l: 1454989900000,
+      v: [155, 20]  
+    },
+    {
+      l: 1455989900000,
+      v: [1, 1]  
+    }])
+    .call(log);
+
+    </script>
+  </body>
+</html>

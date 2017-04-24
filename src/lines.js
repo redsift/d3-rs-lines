@@ -568,12 +568,14 @@ export default function lines(id) {
       });
 
       g.datum(data); // this rebind is required even though there is a following select
-
+        
       let minV = minValue;
       if (minV == null) {
         minV = min(data, d => min(d, d1 => min(d1[1]) ));
         if (minV > 0) {
           minV = logValue === 0 ? 0 : 1;
+        } else if (logValue > 0 && minV < 1) {
+          minV = 1;
         }
       }
             
