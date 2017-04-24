@@ -926,7 +926,7 @@ export default function lines(id) {
             x = fmtX(x);
           }
                     
-          if (fmtY != null) {
+          if (fmtY != null && logValue === 0) {
             y = fmtY(y);
           }
 
