@@ -49,7 +49,7 @@
             .datum(DATA);
         if (animated) bind = bind.transition();
 
-        bind.call(chart.logValue(logValue));
+        bind.call(chart.logValue(logValue).stacked(logValue === 0));
     }
 
     d3.select('#linear').on('click', () => draw(0, true));
