@@ -439,6 +439,7 @@ export default function lines(id) {
     }
       
     selection.each(function() {
+
       let node = select(this);  
       let sh = height || Math.round(width * DEFAULT_ASPECT);
       
@@ -852,19 +853,18 @@ export default function lines(id) {
       let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => sym[i] != null ? d.map(function (v) { return { v : v, i : i }; }) : []);
       eS.exit().remove();
       eS = eS.enter().append('path').merge(eS);
-      eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+scaleV(d.v[1][1])+')')
+      eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+safeScaleV(d.v[1][1])+')')
         .attr('d', (d) => sym[d.i](d.v, d.i))
         .attr('fill', d => colors(d.v, d.i, 'symbol'))
         .attr('stroke', 'none');  
       
-
       let flat = data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i, (e[1][1] - e[1][0])] )), []);
       let overlay = voronoi()
                     .x(d => scaleI(d[0]))
-                    .y(d => scaleV(d[1]))
+                    .y(d => safeScaleV(d[1]))
                     .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
                     .polygons(flat);
- 
+       
       let vmesh = g.select('g.voronoi').selectAll('path').data(overlay);
       vmesh.exit().remove();
       vmesh = vmesh.enter().append('path')
@@ -947,12 +947,11 @@ export default function lines(id) {
       rtip.html(_tipHtml);
       elmS.call(rtip);
 
-
       let defsEl = snode.select('defs');
       if (defsEl.empty()) {
         defsEl = snode.append('defs');
       }
-      
+
       let styleEl = defsEl.selectAll('style' + (id ?  '#style-lines-' + id : '.style-' + classed)).data(_style ? [ _style ] : []);
       styleEl.exit().remove();
       styleEl = styleEl.enter()
@@ -1002,10 +1001,10 @@ export default function lines(id) {
             if (s < 0) break;
             item = data[s][i];
           }
-          y = scaleV(item[1][1]);
+          y = safeScaleV(item[1][1]);
         } else {
           item = [ d.data[0], d.data[1] ];
-          y = scaleV(item[1]);
+          y = safeScaleV(item[1]);
         }
                 
          
@@ -1084,7 +1083,7 @@ export default function lines(id) {
                       // nothing was an option
                       return 0;
                     });  
-        labels = candidates.map(i => calculateTextPosition(polys[i].c, [ scaleI(flat[i][0]), scaleV(flat[i][1]) ]));
+        labels = candidates.map(i => calculateTextPosition(polys[i].c, [ scaleI(flat[i][0]), safeScaleV(flat[i][1]) ]));
       }
       
       let vlabels = g.select('g.voronoi').selectAll('text').data(labels);
@@ -1159,7 +1158,7 @@ export default function lines(id) {
       hLabel.attr('x', d => d.v[1] == null ? scaleI(d.v[0]) + DEFAULT_HIGHLIGHT_PADDING : DEFAULT_HIGHLIGHT_PADDING + scaleI(d.v[0]) + (scaleI(d.v[1]) - scaleI(d.v[0]))/2 )
             .attr('y', _inset.top)
             .text(d => d.l);
-                  
+
       _ptrim = trim;
     });
     
