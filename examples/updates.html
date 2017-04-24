@@ -1,0 +1,49 @@
+<html>
+  <head>
+    <style>
+      
+
+    </style>    
+  </head>
+  <body>
+    <div id="elm"></div>
+    
+    <button id="log">log</button><button id="linear">linear</button>
+
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="//static.redsift.io/reusable/d3-rs-theme/latest/d3-rs-theme.umd-es2015.min.js"></script>
+    <script src="/d3-rs-lines.umd-es2015.min.js"></script>
+    <script>
+
+    'use strict';
+
+    const DATA1 = [{"l":1492387200000,"v":[1,0]},{"l":1492473600000,"v":[0,0]},{"l":1492560000000,"v":[1,0]},{"l":1492646400000,"v":[3,0]},{"l":1492732800000,"v":[2,0]},{"l":1492819200000,"v":[1,0]},{"l":1492905600000,"v":[0,0]},{"l":1492992000000,"v":[0,0]}] ;
+    const DATA2 = [{"l":1491696000000,"v":[0,0]},{"l":1491782400000,"v":[2,0]},{"l":1491868800000,"v":[3,19]},{"l":1491955200000,"v":[5,0]},{"l":1492041600000,"v":[1,0]},{"l":1492128000000,"v":[1,0]},{"l":1492214400000,"v":[0,0]},{"l":1492300800000,"v":[0,0]},{"l":1492387200000,"v":[1,0]},{"l":1492473600000,"v":[0,0]},{"l":1492560000000,"v":[1,0]},{"l":1492646400000,"v":[3,0]},{"l":1492732800000,"v":[2,0]},{"l":1492819200000,"v":[1,0]},{"l":1492905600000,"v":[0,0]},{"l":1492992000000,"v":[0,0]}];
+
+    let chart = d3_rs_lines.html('log')
+        .tickCountIndex('utcMonth')
+        .labelTime('multi')
+        .niceIndex(true)
+        .stacked(true)
+        .curve('curveStep');
+
+    function draw(logValue, animated) {
+        let bind = d3.select('#elm')
+            .datum(DATA1);
+            
+        if (animated) {
+            bind.datum(DATA2).call(chart);
+            bind = bind.transition();
+        }
+
+        bind.call(chart.logValue(logValue).stacked(logValue === 0));
+    }
+
+    d3.select('#linear').on('click', () => draw(0, true));
+    d3.select('#log').on('click', () => draw(10, true));
+
+    draw(10, false);
+
+    </script>
+  </body>
+</html>
