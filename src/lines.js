@@ -735,17 +735,18 @@ export default function lines(id) {
         .selectAll('line')
           .attr('class', (d, i) => gridIndex ? i === 0 ? 'grid first' : 'grid' : null);
             
-      
+      const safeScaleV = (v) => (logValue > 0 && v < 1) ? scaleV.range()[0] : scaleV(v);
+
       // Note: A lot of scaleI, scaleV calls.    
       let lines = line()
         .x(d => scaleI(d[0]))
-        .y(d => scaleV(d[1][1]));
+        .y(d => safeScaleV(d[1][1]));
       // These can be truncated .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);
 
       let areas = area()
           .x(d => scaleI(d[0]))
-          .y0(d => scaleV(d[1][0])) // bottom
-          .y1(d => scaleV(d[1][1])); // top
+          .y0(d => safeScaleV(d[1][0]) ) // bottom
+          .y1(d => safeScaleV(d[1][1]) ); // top
  
       
       let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);

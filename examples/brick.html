@@ -569,6 +569,36 @@
     }])
     .call(tips);
 
+  let log = d3_rs_lines.html('log')
+    .tickCountIndex('utcMonth')
+    .labelTime('multi')
+    .niceIndex(true)
+    .curve('curveStep')
+    .minValue(1)
+    .logValue(10);
+
+    d3.select('#elm')
+    .datum([{
+      l: 1451406400000,
+      v: [1, 1]
+    },{
+      l: 1451606400000,
+      v: [1000, 50]
+    },
+    {
+      l: 1454284800000,
+      v: [285, 151]  
+    },
+    {
+      l: 1454989900000,
+      v: [155, 20]  
+    },
+    {
+      l: 1455989900000,
+      v: [1, 1]  
+    }])
+    .call(log);
+
     </script>
   </body>
 </html>
