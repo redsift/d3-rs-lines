@@ -55,11 +55,11 @@ gulp.task('clean', () => del([ 'distribution/**' ]));
 
 gulp.task('umd', task.umd = () => {  
   return rollup({
-            moduleName: outputFilename.replace(/-/g, '_'),
+            name: outputFilename.replace(/-/g, '_'),
             globals: globalMap,
-            entry: 'index.js',
+            input: 'index.js',
             format: 'umd',
-            sourceMap: true,
+            sourcemap: true,
             plugins: [ 
                         json({
                             include: [ '**/package.json' , 'node_modules/**/*.json' ], 
