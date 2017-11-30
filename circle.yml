@@ -1,6 +1,6 @@
 machine: 
   node:
-    version: 6.3.1
+    version: 8.0.0
   environment: 
     S3_BUCKET: redsift-static
     NAME: d3-rs-lines
@@ -13,6 +13,7 @@ checkout:
 
 dependencies: 
   override:
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
     - npm install
     - mv ./distribution ${CIRCLE_ARTIFACTS}/distribution
 
@@ -26,7 +27,6 @@ deployment:
     commands:
       - sudo pip install awscli
       - echo "Publishing to NPM"
-      - echo -e "$NPM_USERNAME\n$NPM_PASSWORD\n$NPM_EMAIL" | npm login
       - npm publish --access=public    
       - echo "Uploading to S3 bucket..."
       - aws s3 cp ${CIRCLE_ARTIFACTS}/distribution s3://$S3_BUCKET/reusable/$NAME/latest --recursive --acl public-read --cache-control max-age=7200,public
