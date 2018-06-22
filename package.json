@@ -1,6 +1,6 @@
 {
   "name": "@redsift/d3-rs-lines",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "description": "Generates line charts using D3v4.",
   "keywords": [
     "line",
@@ -26,18 +26,18 @@
   "scripts": {
     "serve": "gulp -o d3-rs-lines -g d3-selection serve",
     "prepublish": "npm run clean; npm run build",
-    "build": "npm run clean; node ./node_modules/@redsift/rollup-bundler/src/index.js",
+    "build": "npm run clean; node ./node_modules/@redsift/rollup-bundler/src/index.js bundle.config.js",
     "clean": "rm -rf dist",
     "pretest": "npm outdated || true && npm run build",
     "test": "tape 'test/**/*-test.js'",
     "posttest": "eslint index.js src"
   },
   "dependencies": {
-    "@redsift/d3-rs-intl": "~0.1.0",
-    "@redsift/d3-rs-legends": "~0.2.0",
-    "@redsift/d3-rs-svg": "^0.4.0",
-    "@redsift/d3-rs-theme": "~0.4.2",
-    "@redsift/d3-rs-tip": "~0.6.0",
+    "@redsift/d3-rs-intl": "^0.1.0",
+    "@redsift/d3-rs-legends": "^0.2.0",
+    "@redsift/d3-rs-svg": "^0.5.2",
+    "@redsift/d3-rs-theme": "^0.4.2",
+    "@redsift/d3-rs-tip": "^0.6.0",
     "d3-array": "^1.0.1",
     "d3-axis": "^1.0.3",
     "d3-format": "^1.0.2",
@@ -50,10 +50,10 @@
     "d3-voronoi": "^1.0.2"
   },
   "devDependencies": {
-    "@redsift/rollup-bundler": "^0.3.2",
+    "@redsift/rollup-bundler": "^0.5.1",
+    "@redsift/tape-reel": "^0.1.0",
     "babel-plugin-external-helpers": "^6.22.0",
     "babel-preset-env": "^1.6.1",
-    "@redsift/tape-reel": "~0.1.0",
     "browser-sync": "^2.14.0",
     "del": "^2.2.2",
     "eslint": "^3.3.1",

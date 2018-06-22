@@ -91,7 +91,13 @@
     d3-format "^1.2.2"
     d3-selection "^1.2.0"
 
-"@redsift/d3-rs-svg@^0.4.0", "@redsift/d3-rs-svg@~0.4.0":
+"@redsift/d3-rs-svg@^0.5.2":
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/@redsift/d3-rs-svg/-/d3-rs-svg-0.5.2.tgz#db9aa4f75357618e2b8abe148d916a743bd53850"
+  dependencies:
+    d3-selection "^1.2.0"
+
+"@redsift/d3-rs-svg@~0.4.0":
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/@redsift/d3-rs-svg/-/d3-rs-svg-0.4.0.tgz#1e9f7d096da925b506b74b0a8f15662aff383a2c"
   dependencies:
@@ -111,9 +117,9 @@
     d3-selection "~1.2.0"
     d3-transition "~1.1.1"
 
-"@redsift/rollup-bundler@^0.3.2":
-  version "0.3.2"
-  resolved "https://registry.yarnpkg.com/@redsift/rollup-bundler/-/rollup-bundler-0.3.2.tgz#333ad04048b8dbc94d44dc6cb685dc2dd012b47f"
+"@redsift/rollup-bundler@^0.5.1":
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/@redsift/rollup-bundler/-/rollup-bundler-0.5.1.tgz#71e6659f9aa20cf629c7cee35f14af733b837db6"
   dependencies:
     babel-core "^6.26.0"
     babel-eslint "^8.2.1"
