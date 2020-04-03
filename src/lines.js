@@ -288,7 +288,6 @@ export default function lines(id) {
       fillStroke = null,
       language = null,
       stacked = null,
-      onClick = null,
       stackOrder = stackOrderNone, 
       stackOffset = stackOffsetNone,
       voronoiAttraction = 0.33,
@@ -307,6 +306,8 @@ export default function lines(id) {
       axisPaddingIndex = DEFAULT_AXIS_PADDING,
       axisPaddingValue = DEFAULT_AXIS_PADDING,
       legend = [ ],
+      legendsEnabled = [ ],
+      legendIsToggleable = false,
       fill = null,
       labelTime = null,
       curve = curveCatmullRom.alpha(0),
@@ -501,665 +502,678 @@ export default function lines(id) {
       }
       g.selectAll('circle.tip').remove();
 
-        
-      let data = g.datum() || [];
-      
-      if (!Array.isArray(data)) {
-        data = [ data ];
-      }
-      
-      if (data.length > 0) {
-        if (stacked !== null && stacked !== false) {
-          let stacker = stack();
-          
-          if (stacked === true) {
-            let maxD = max(data, d => d.v.length);
-            
-            stacker.keys(Array.from(Array(maxD).keys())).value((d,k) => d.v[k] != null ? d.v[k] : 0);
-          } else {
-            stacker.keys(stacked);
-          }
-          
-          let _stackOrder = _mapStackOrder(stackOrder);
-          if (_stackOrder != null) stacker.order(_stackOrder);
-          
-          let _stackOffset = _mapStackOffset(stackOffset);
-          if (_stackOffset != null) stacker.offset(_stackOffset);
-                    
-          data = stacker(data).map(s => s.map(v => [ v.data.l, v ]));
 
-        } else if (Array.isArray(data[0])) {
-          data = data.map(a => a.map((d, i) => value(d, i, true))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );
-        } else {
-          data = _flatArrays(data.map((d, i) => value(d, i, false))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );          
-        }
-      }
-      
-      let _mapData = function(option) {
-        let out = [];
+      let data = g.datum() || [];
+
+      let _mapData = function(option, arr = data) {
         if (!Array.isArray(option)) {
-          out = data.map(d => option === true ? 
-          trim == null ? d : d.slice(0, trim)
-          : []);
+          return arr.map(d => option === true ?
+              trim == null ? d : d.slice(0, trim)
+              : []);
         } else {
-          out = data.map(function (d, i) {
+          return arr.map(function (d, i) {
             if (i < option.length) {
-              return option[i] === true ? 
-              trim == null ? d : d.slice(0, trim) 
-              : [];
+              return option[i] === true ?
+                  trim == null ? d : d.slice(0, trim)
+                  : [];
             }
             return [];
           });
         }
-        return out;
-      }
-                
-      let fdata = _mapData(_fillArea);
-            
-      let sdata = _mapData(_fillStroke);
-
-      let _curve = data.map(function (d, i) {
-        if (!Array.isArray(curve)) {
-          return _mapCurve(curve);
-        }  
-        if (i < curve.length) {
-          return _mapCurve(curve[i]);
-        }
-        return null;
-      });
-
-      g.datum(data); // this rebind is required even though there is a following select
-        
-      let minV = minValue;
-      if (minV == null) {
-        minV = min(data, d => min(d, d1 => min(d1[1]) ));
-        if (minV > 0) {
-          minV = logValue === 0 ? 0 : 1;
-        } else if (logValue > 0 && minV < 1) {
-          minV = 1;
-        }
-      }
-            
-      let maxV = maxValue;
-      if (maxV == null) {
-        maxV = max(data, d => max(d, d1 => max(d1[1]) ));
-      }
-      
-      let minI = minIndex;
-      if (minI == null) {
-        minI = min(data, d => min(d, d1 => d1[0]));
-      }
-      if (minI == null) minI = 0;
-      
-      let maxI = maxIndex;
-      if (maxI == null) {
-        maxI = max(data, d => max(d, d1 => d1[0]));
-      }
-      if (maxI == null) maxI = DEFAULT_SCALE;
-                       
-      let w = root.childWidth(),
-          h = root.childHeight();
-            
-      let colors = _makeFillFn();
-      
-      // Create the legend
-      let lchart = null;
-      if (legend.length > 0 && legendOrientation !== 'voronoi') {
-        let lid = null;
-        if (id) lid = `legend-${id}`;
-        lchart = legends(lid).width(w).height(h).style(null).margin(0).inset(0).fill(colors).theme(theme).orientation(legendOrientation);
-
-        _inset = lchart.childInset(_inset);
-
-        elmS.datum(legend).call(lchart);
-      }       
-      
-      // margin is a bit of a hack but don't trim the top
-      let marginTop = margin.top !== undefined ? margin.top : margin;
-      g.select('#' + cid).select('rect')
-        .attr('x', _inset.left)
-        .attr('y', -(_inset.top + marginTop))
-        .attr('width', w - _inset.right - _inset.left)
-        .attr('height', h - _inset.bottom + _inset.top + marginTop);           
-      
-      let sV = scaleLinear(); 
-      if (logValue > 0) sV = scaleLog().base(logValue);
-      let scaleV = sV.domain([ minV, maxV ]).range([ h - _inset.bottom, _inset.top ]);
-      if (niceValue === true) {
-        scaleV = scaleV.nice();
-      }
-            
-      let sI = scaleLinear(); 
-      if (labelTime != null) sI = scaleTime();
-      let domainI = [ minI, maxI ];
-      let scaleI = sI.domain(domainI).range([ _inset.left, w - _inset.right ]);
-      if (niceIndex === true) {
-        scaleI = scaleI.nice();
       }
 
-      let formatValue = tickFormatValue;
-      if (logValue > 0 && formatValue == null) {
-        formatValue = '.0r';
-      }        
-      
-      let axis = (axisValue === 'left') ? axisLeft : axisRight;
-          
-      let aV = axis(scaleV)
-                  .tickPadding(axisPaddingValue)
-                  .ticks(tickCountValue, (formatValue == null ? scaleV.tickFormat(tickCountValue) : formatValue));
-      if (gridValue === true) {
-        aV.tickSizeInner((_inset.left + _inset.right) - w);
-      } else {
-        aV.tickSizeInner(DEFAULT_MAJOR_TICK_SIZE);
+      if (!Array.isArray(data)) {
+        data = [ data ];
       }
-      if (tickDisplayValue) {
-        aV.tickFormat(tickDisplayValue);
-      }
-      
-      let aVMinor = null;
-      if (tickMinorValue !== null) {
-        aVMinor = axis(scaleV).ticks(tickMinorValue).tickSizeInner(DEFAULT_MINOR_TICK_SIZE).tickFormat(() => undefined);
-      }
-      let axisTranslate = (axisValue === 'left') ? _inset.left : w - _inset.right;
-      let gAxisV = g.select('g.axis-v')
-        .attr('transform', 'translate(' + axisTranslate + ',0)');
-      let gAxisVMinor = g.select('g.axis-v-minor')
-        .attr('transform', 'translate(' + axisTranslate + ',0)'); 
 
-      let aI = axisBottom(scaleI).tickPadding(axisPaddingIndex);
-      
-      if (labelTime != null) {
-        let freq = _mapIntervalTickCount(tickCountIndex);
-        if (freq != null) {
-          aI = aI.tickArguments(freq);
-        }
-        if (typeof labelTime === 'function') {
-          aI.tickFormat(labelTime);          
-        } else if (labelTime === 'multi') {
-          aI.tickFormat(timeMultiFormat());       
-        }  else if (labelTime === 'multi-local') {
-          aI.tickFormat(timeMultiFormat({ localtime: true }));       
-        } else {
-          aI.tickFormat(timeFormat(labelTime));          
-        }
-      } else {
-        aI = aI.ticks(tickCountIndex, (tickFormatIndex == null ? scaleI.tickFormat(tickCountIndex) : tickFormatIndex));
-      }
-      if (gridIndex === true) {
-        aI.tickSizeInner((_inset.top + _inset.bottom) - h);
-      } else {
-        aI.tickSizeInner(DEFAULT_MAJOR_TICK_SIZE);
-      }  
-      if (tickDisplayIndex != null) {
-        aI.tickFormat(tickDisplayIndex);
-      }   
-      
-      let aIMinor = null;
-      if (tickMinorIndex !== null) {
-        let density = [ tickMinorIndex ];
-        if (labelTime != null) {
-          density = _mapIntervalTickCount(tickMinorIndex);
-        }
-        aIMinor = axisBottom(scaleI).tickArguments(density).tickSizeInner(DEFAULT_MINOR_TICK_SIZE).tickFormat(() => undefined);
-      }
-            
-      let gAxisI = g.select('g.axis-i')
-        .attr('transform', 'translate(0,' + (h - _inset.bottom) + ')');
-      
-      let gAxisIMinor = g.select('g.axis-i-minor')
-        .attr('transform', 'translate(0,' + (h - _inset.bottom) + ')');
-                
-      if (transition === true && animateAxis === true) {
-        gAxisVMinor = gAxisVMinor.transition(context);
-        gAxisIMinor = gAxisIMinor.transition(context);
-        gAxisV = gAxisV.transition(context);
-        gAxisI = gAxisI.transition(context);
-      }  
+      function draw(initialDrawing) {
+        let _data = data.map(item => ({...item, v: item.v.map((v, idx) => legendsEnabled.includes(idx) ? v : null)}));
+        if (_data.length > 0) {
+          if (stacked !== null && stacked !== false) {
+            let stacker = stack();
 
-      if (aIMinor !== null) {
-        gAxisIMinor.call(aIMinor);    
-      } else {
-        gAxisIMinor.selectAll('*').remove();
-      }
-      
-      if (aVMinor !== null) {
-        gAxisVMinor.call(aVMinor);    
-      } else {
-        gAxisVMinor.selectAll('*').remove();
-      }
-      
-      gAxisV.call(aV)
-        .selectAll('line')
-          .attr('class', (d, i) => gridValue ? i === 0 ? 'grid first' : 'grid' : null);      
+            if (stacked === true) {
+              let maxD = max(_data, d => d.v.length);
 
-      gAxisI.call(aI)
-        .selectAll('line')
-          .attr('class', (d, i) => gridIndex ? i === 0 ? 'grid first' : 'grid' : null);
-            
-      const safeScaleV = (v) => (logValue > 0 && v < 1) ? scaleV.range()[0] : scaleV(v);
-
-      // Note: A lot of scaleI, scaleV calls.    
-      let lines = line()
-        .x(d => scaleI(d[0]))
-        .y(d => safeScaleV(d[1][1]));
-      // These can be truncated .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);
-
-      let areas = area()
-          .x(d => scaleI(d[0]))
-          .y0(d => safeScaleV(d[1][0]) ) // bottom
-          .y1(d => safeScaleV(d[1][1]) ); // top
- 
-      
-      let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
-      let sym = data.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : null);
-            
-      let elmL = g.select('g.lines');
-
-      let elmG = elmL.selectAll('g.line').data(data);
-      elmG.exit().remove();
-      let elmGNew = elmG.enter().append('g').attr('class', 'line');
-      elmGNew.append('path').attr('class', 'area').attr('stroke', 'none');
-      elmGNew.append('path').attr('class', 'stroke').attr('fill', 'none');
-      elmGNew.append('g').attr('class', 'symbols');
-      elmG = elmG.merge(elmGNew);
-      
-      let elmArea = elmL.selectAll('path.area').data(fdata);
-      let elmStroke = elmL.selectAll('path.stroke').data(sdata);
-
-      // Add the clipping paths to ensure curves do not move outside 
-      // the graph area. Do this before the animation
-      elmArea.attr('clip-path', `url(#${cid})`);
-      elmStroke.attr('clip-path', `url(#${cid})`);
-      
-      if (transition === true) {
-        elmArea = elmArea.transition(context);
-        elmStroke = elmStroke.transition(context);
-      }  
-
-      function revealInterpolation(tr, fn) {
-        return function (d, i) {
-          let ln = fn(i);
-          if (tr == null) tr = 1;
-          
-          let interpolate = scaleLinear()
-                              .domain([0, 1])
-                              .range([tr, d.length + 1]);
-
-          return function(t) {
-            if (d.length == 0) return '';
-
-            let flooredX = Math.floor(interpolate(t));
-            
-            let weight = interpolate(t) - flooredX;
-            let interpolatedLine = d.slice(0, flooredX);
-
-            if (flooredX > 0 && flooredX < d.length) {
-              let wY0 = d[flooredX][1][0] * weight + d[flooredX-1][1][0] * (1.0 - weight);
-              let wY1 = d[flooredX][1][1] * weight + d[flooredX-1][1][1] * (1.0 - weight);
-
-              let wX = d[flooredX][0] * weight + d[flooredX-1][0] * (1.0 - weight);
-
-              interpolatedLine.push([ wX, [ wY0, wY1 ] ]);
+              stacker.keys(Array.from(Array(maxD).keys())).value((d,k) => d.v[k] != null ? d.v[k] : 0);
+            } else {
+              stacker.keys(stacked);
             }
 
-            return ln(interpolatedLine);
-          }
-        } 
-      }
-      
-      function valueInterpolation(tr, fn) {
-        return function (d, i) {
-          let ln = fn(i);
+            let _stackOrder = _mapStackOrder(stackOrder);
+            if (_stackOrder != null) stacker.order(_stackOrder);
 
-          return function(t) {
-            let flooredX = d.length - 1;
-            if (flooredX < 0) return '';
-            
-            let interpolatedLine = d.slice(0, flooredX);
+            let _stackOffset = _mapStackOffset(stackOffset);
+            if (_stackOffset != null) stacker.offset(_stackOffset);
 
-            let wY0 = d[flooredX][1][0] * t;
-            let wY1 = d[flooredX][1][1] * t;
+            _data = stacker(_data).map(s => s.map(v => [ v.data.l, v ]));
 
-            interpolatedLine.push([ d[flooredX][0], [ wY0, wY1 ] ]);
-
-            return ln(interpolatedLine);
-          }
-        } 
-      }      
-      
-      
-      elmArea.attr('opacity', _fillOpacity)
-             .attr('fill', (d,i) => colors(d, i, 'area'));        
-      
-      elmStroke.attr('stroke', (d,i) => colors(d, i, 'stroke'));
-      
-      let interpolation = null;
-      if (transition === true) {
-        if (animation === 'reveal') {
-          interpolation = revealInterpolation;
-        } else if (animation === 'value') {
-          interpolation = valueInterpolation;
-        }
-      }
-      
-      if (interpolation !== null) {
-        elmArea.attrTween('d', interpolation(_ptrim, i => _curve[i] != null ? areas.curve(_curve[i]) : areas));
-        elmStroke.attrTween('d', interpolation(_ptrim, i => _curve[i] != null ? lines.curve(_curve[i]) : lines));
-      } else {
-        elmArea.attr('d', (d, i) => _curve[i] != null ? areas.curve(_curve[i])(d, i) : areas(d, i));
-        elmStroke.attr('d', (d, i) => _curve[i] != null ? lines.curve(_curve[i])(d, i) : lines(d, i));
-      }
-      
-      let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => sym[i] != null ? d.map(function (v) { return { v : v, i : i }; }) : []);
-      eS.exit().remove();
-      eS = eS.enter().append('path').merge(eS);
-      eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+safeScaleV(d.v[1][1])+')')
-        .attr('d', (d) => sym[d.i](d.v, d.i))
-        .attr('fill', d => colors(d.v, d.i, 'symbol'))
-        .attr('stroke', 'none');  
-      
-      let flat = data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i, (e[1][1] - e[1][0])] )), []);
-      let overlay = voronoi()
-                    .x(d => scaleI(d[0]))
-                    .y(d => safeScaleV(d[1]))
-                    .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
-                    .polygons(flat);
-       
-      let vmesh = g.select('g.voronoi').selectAll('path').data(overlay);
-      vmesh.exit().remove();
-      vmesh = vmesh.enter().append('path')
-              .attr('fill', 'none')
-              .attr('pointer-events', 'all')
-              .merge(vmesh);
-              
-      vmesh.attr('d', d => d != null ? 'M' + d.join('L') + 'Z' : '')
-          .attr('class', d => d != null ? 'series-' + d.data[2] : null);
-
-      let _tipHtml = tipHtml;
-
-      let fmtX = (v) => v;
-      
-      if (labelTime != null) {
-        if (typeof labelTime === 'function') {
-          fmtX = labelTime          
-        } else if (labelTime === 'multi') {
-          let tf = timeFormatLocale(localeTime).format;
-          
-          fmtX = timeMultiFormat({ localtime: false } , tf);       
-        } else if (labelTime === 'multi-local') {
-          let tf = timeFormatLocale(localeTime).format;
-          //TODO: Temp fix related to https://github.com/redsift/d3-rs-lines/issues/6
-          // needs a refactor to properly support time zones
-          fmtX = timeMultiFormat({ localtime: false } , tf);       
-        } else {
-          let tf = timeFormatLocale(localeTime);
-          
-          fmtX = tf.format(labelTime);          
-        }
-      } else if (typeof tickFormatIndex === 'function') {
-        fmtX = tickFormatIndex;
-      } else if (tickFormatIndex != null) {
-        fmtX = formatLocale(localeFormat).format(tickFormatIndex);
-      }      
-      
-      let fmtY = null;
-      
-      if (formatValue != null) {
-        if (typeof formatValue === 'function') {
-          fmtY = formatValue;
-        } else {
-          fmtY = formatLocale(localeFormat).format(formatValue);
-        }
-      }
-      if (_tipHtml == null) {
-
-            
-        _tipHtml = function (d,i,s) {
-          let v = value(d);
-          let x = v[0];
-          let y = 0;
-          if (stacked === true) {
-            y = (s === -1) ? 0 : v[1][s];
-
+          } else if (Array.isArray(_data[0])) {
+            _data = _data.map(a => a.map((d, i) => value(d, i, true))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );
           } else {
-            y = v[1];
-          }
-
-          if (fmtX != null) {
-            x = fmtX(x);
-          }
-                    
-          if (fmtY != null && logValue === 0) {
-            y = fmtY(y);
-          }
-
-          return x + ', ' + y;
-        }
-      }
-
-      // Tip
-      let _style = style;
-      if (_style === undefined) {
-        // build a style sheet from the embedded charts
-        _style = [ _impl, lchart, rtip ].filter(c => c != null).reduce((p, c) => p + c.defaultStyle(theme, w), '');
-      }
-
-      rtip.html(_tipHtml);
-      elmS.call(rtip);
-
-      let defsEl = snode.select('defs');
-      if (defsEl.empty()) {
-        defsEl = snode.append('defs');
-      }
-
-      let styleEl = defsEl.selectAll('style' + (id ?  '#style-lines-' + id : '.style-' + classed)).data(_style ? [ _style ] : []);
-      styleEl.exit().remove();
-      styleEl = styleEl.enter()
-                  .append('style')
-                    .attr('type', 'text/css')
-                    .attr('id', (id ?  'style-lines-' + id : null))
-                    .attr('class', (id ?  null : 'style-' + classed))
-                  .merge(styleEl);
-      styleEl.text(s => s);
-
-      vmesh.on('click', function (d) {
-        let s = d.data[2];
-        let i = d.data[3];
-        
-        let item = data[s][i];
-        
-        if (stacked === true) {
-          // Quick hack to ignore empty series by scanning downward
-          while (item == null || (item[1][1] - item[1][0] === 0)) {
-            s = s - 1;
-            if (s < 0) break;
-            item = data[s][i];
+            _data = _flatArrays(_data.map((d, i) => value(d, i, false))).map(s => s.map(e => [ e[0], [ 0, e[1] ] ]) );
           }
         }
-        
-        let nested = item[1].data;
-        
-        if (nested !== undefined) {
-          item = nested;
-        }
-        
-        if (onClick) onClick(item);
-      });
 
-      vmesh.on('mouseover', function (d) {
-        let s = d.data[2];
-        let i = d.data[3];
-        
-        let item = data[s][i];
-        
-        let y = 0;
+        let fdata = _mapData(_fillArea, _data);
 
-        if (stacked === true) {
-          // Quick hack to ignore empty series by scanning downward
-          while (item == null || (item[1][1] - item[1][0] === 0)) {
-            s = s - 1;
-            if (s < 0) break;
-            item = data[s][i];
+        let sdata = _mapData(_fillStroke, _data);
+
+        let _curve = _data.map(function (d, i) {
+          if (!Array.isArray(curve)) {
+            return _mapCurve(curve);
           }
-          y = safeScaleV(item[1][1]);
+          if (i < curve.length) {
+            return _mapCurve(curve[i]);
+          }
+          return null;
+        });
+
+        g.datum(_data); // this rebind is required even though there is a following select
+
+        let minV = minValue;
+        if (minV == null) {
+          minV = min(_data, d => min(d, d1 => min(d1[1]) ));
+          if (minV > 0) {
+            minV = logValue === 0 ? 0 : 1;
+          } else if (logValue > 0 && minV < 1) {
+            minV = 1;
+          }
+        }
+
+        let maxV = maxValue;
+        if (maxV == null) {
+          maxV = max(_data, d => max(d, d1 => max(d1[1]) ));
+        }
+
+        let minI = minIndex;
+        if (minI == null) {
+          minI = min(_data, d => min(d, d1 => d1[0]));
+        }
+        if (minI == null) minI = 0;
+
+        let maxI = maxIndex;
+        if (maxI == null) {
+          maxI = max(_data, d => max(d, d1 => d1[0]));
+        }
+        if (maxI == null) maxI = DEFAULT_SCALE;
+
+        let w = root.childWidth(),
+            h = root.childHeight();
+
+        let colors = _makeFillFn();
+
+        // Create the legend
+        let lchart = null;
+        if (legend.length > 0 && legendOrientation !== 'voronoi') {
+          let lid = null;
+          if (id) lid = `legend-${id}`;
+          lchart = legends(lid)
+              .width(w)
+              .height(h)
+              .style(null)
+              .margin(0)
+              .inset(0)
+              .fill(colors)
+              .theme(theme)
+              .orientation(legendOrientation)
+              .toggleable(legendIsToggleable)
+              .onEnabledLegendItemsChange(enabledLegendItems => {
+                legendsEnabled = enabledLegendItems;
+                draw(false);
+              })
+          ;
+
+          if (initialDrawing) _inset = lchart.childInset(_inset);
+          elmS.datum(legend).call(lchart);
+        }
+
+        // margin is a bit of a hack but don't trim the top
+        let marginTop = margin.top !== undefined ? margin.top : margin;
+        g.select('#' + cid).select('rect')
+            .attr('x', _inset.left)
+            .attr('y', -(_inset.top + marginTop))
+            .attr('width', w - _inset.right - _inset.left)
+            .attr('height', h - _inset.bottom + _inset.top + marginTop);
+
+        let sV = scaleLinear();
+        if (logValue > 0) sV = scaleLog().base(logValue);
+        let scaleV = sV.domain([ minV, maxV ]).range([ h - _inset.bottom, _inset.top ]);
+        if (niceValue === true) {
+          scaleV = scaleV.nice();
+        }
+
+        let sI = scaleLinear();
+        if (labelTime != null) sI = scaleTime();
+        let domainI = [ minI, maxI ];
+        let scaleI = sI.domain(domainI).range([ _inset.left, w - _inset.right ]);
+        if (niceIndex === true) {
+          scaleI = scaleI.nice();
+        }
+
+        let formatValue = tickFormatValue;
+        if (logValue > 0 && formatValue == null) {
+          formatValue = '.0r';
+        }
+
+        let axis = (axisValue === 'left') ? axisLeft : axisRight;
+
+        let aV = axis(scaleV)
+            .tickPadding(axisPaddingValue)
+            .ticks(tickCountValue, (formatValue == null ? scaleV.tickFormat(tickCountValue) : formatValue));
+        if (gridValue === true) {
+          aV.tickSizeInner((_inset.left + _inset.right) - w);
         } else {
-          item = [ d.data[0], d.data[1] ];
-          y = safeScaleV(item[1]);
+          aV.tickSizeInner(DEFAULT_MAJOR_TICK_SIZE);
         }
-                
-         
-        let x = scaleI(item[0]);
-        
-        let nested = item[1].data;
-        
-        if (nested !== undefined) {
-          item = nested;
+        if (tickDisplayValue) {
+          aV.tickFormat(tickDisplayValue);
         }
 
-        g.append('circle')
-          .attr('r', DEFAULT_TIP_CIRCLE_SIZE)
-          .attr('class', 'tip outline')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('pointer-events', 'none')
-          .attr('fill', display[theme].axis);
-          
-        let circle = g.append('circle')
-          .attr('r', DEFAULT_TIP_CIRCLE_SIZE - widths.outline)
-          .attr('class', 'tip fill')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('pointer-events', 'none')
-          .attr('fill', colors(item, s));
-
-        rtip.show.apply(circle.node(), [ item, i, s ]);
-      });
-       
-      elmS.on('mouseout', function () {
-        g.selectAll('circle.tip').remove();
-        rtip.hide.apply(this);
-      });
-      rtip.hide();
-        
-      let labels = [];  
-
-      if (legendOrientation === 'voronoi') {
-        const centerI = (scaleI.range()[1] - scaleI.range()[0]) / 2;
-        const UNIT_TO_RAD = Math.PI / 2;
-
-        let calculatePolygon = function(d, i) {
-          let c = polygonCentroid(d);
-          // the more central (in x), the more suitable
-          let centraility = Math.cos(UNIT_TO_RAD * Math.abs(centerI - c[0]) / centerI);
-          // a: larger number, more suitable polygon
-          return { a: polygonArea(d) * centraility, s: d.data[2], i: i, c: c };
+        let aVMinor = null;
+        if (tickMinorValue !== null) {
+          aVMinor = axis(scaleV).ticks(tickMinorValue).tickSizeInner(DEFAULT_MINOR_TICK_SIZE).tickFormat(() => undefined);
         }
-         
-        // will drag the text position towards the data point by a funciton of 
-        // voronoiAttraction
-        let calculateTextPosition = function(centroid, point) {
-          let angle = Math.atan2(centroid[1] - point[1], centroid[0] - point[0]);
-          
-          let x = centroid[0] - point[0];
-          let y = centroid[1] - point[1];
-          
-          let l = Math.sqrt(x*x + y*y);
+        let axisTranslate = (axisValue === 'left') ? _inset.left : w - _inset.right;
+        let gAxisV = g.select('g.axis-v')
+            .attr('transform', 'translate(' + axisTranslate + ',0)');
+        let gAxisVMinor = g.select('g.axis-v-minor')
+            .attr('transform', 'translate(' + axisTranslate + ',0)');
 
-          return [ centroid[0] - voronoiAttraction*l*Math.cos(angle), centroid[1] - voronoiAttraction*l*Math.sin(angle) ];
+        let aI = axisBottom(scaleI).tickPadding(axisPaddingIndex);
+
+        if (labelTime != null) {
+          let freq = _mapIntervalTickCount(tickCountIndex);
+          if (freq != null) {
+            aI = aI.tickArguments(freq);
+          }
+          if (typeof labelTime === 'function') {
+            aI.tickFormat(labelTime);
+          } else if (labelTime === 'multi') {
+            aI.tickFormat(timeMultiFormat());
+          }  else if (labelTime === 'multi-local') {
+            aI.tickFormat(timeMultiFormat({ localtime: true }));
+          } else {
+            aI.tickFormat(timeFormat(labelTime));
+          }
+        } else {
+          aI = aI.ticks(tickCountIndex, (tickFormatIndex == null ? scaleI.tickFormat(tickCountIndex) : tickFormatIndex));
         }
-        
-        let polys = overlay.map(calculatePolygon);
-        
-        let candidates = nest()
-                    .key(d => d != null ? d.s : '')
-                    .sortValues((a,b) => descending(a.a, b.a))
-                    .entries(polys)
-                    .filter(d => d.key !== '')
-                    .map(function (d) {
-                      for (let i=0; i < d.values.length; i++) {
-                        let e = d.values[i];
-                        if (e != null) return e.i;
-                      }
-                      // nothing was an option
-                      return 0;
-                    });  
-        labels = candidates.map(i => calculateTextPosition(polys[i].c, [ scaleI(flat[i][0]), safeScaleV(flat[i][1]) ]));
-      }
-      
-      let vlabels = g.select('g.voronoi').selectAll('text').data(labels);
-      vlabels.exit().remove();
-      vlabels = vlabels.enter().append('text')            
+        if (gridIndex === true) {
+          aI.tickSizeInner((_inset.top + _inset.bottom) - h);
+        } else {
+          aI.tickSizeInner(DEFAULT_MAJOR_TICK_SIZE);
+        }
+        if (tickDisplayIndex != null) {
+          aI.tickFormat(tickDisplayIndex);
+        }
+
+        let aIMinor = null;
+        if (tickMinorIndex !== null) {
+          let density = [ tickMinorIndex ];
+          if (labelTime != null) {
+            density = _mapIntervalTickCount(tickMinorIndex);
+          }
+          aIMinor = axisBottom(scaleI).tickArguments(density).tickSizeInner(DEFAULT_MINOR_TICK_SIZE).tickFormat(() => undefined);
+        }
+
+        let gAxisI = g.select('g.axis-i')
+            .attr('transform', 'translate(0,' + (h - _inset.bottom) + ')');
+
+        let gAxisIMinor = g.select('g.axis-i-minor')
+            .attr('transform', 'translate(0,' + (h - _inset.bottom) + ')');
+
+        if (transition === true && animateAxis === true) {
+          gAxisVMinor = gAxisVMinor.transition(context);
+          gAxisIMinor = gAxisIMinor.transition(context);
+          gAxisV = gAxisV.transition(context);
+          gAxisI = gAxisI.transition(context);
+        }
+
+        if (aIMinor !== null) {
+          gAxisIMinor.call(aIMinor);
+        } else {
+          gAxisIMinor.selectAll('*').remove();
+        }
+
+        if (aVMinor !== null) {
+          gAxisVMinor.call(aVMinor);
+        } else {
+          gAxisVMinor.selectAll('*').remove();
+        }
+
+        gAxisV.call(aV)
+            .selectAll('line')
+            .attr('class', (d, i) => gridValue ? i === 0 ? 'grid first' : 'grid' : null);
+
+        gAxisI.call(aI)
+            .selectAll('line')
+            .attr('class', (d, i) => gridIndex ? i === 0 ? 'grid first' : 'grid' : null);
+
+        const safeScaleV = (v) => (logValue > 0 && v < 1) ? scaleV.range()[0] : scaleV(v);
+
+        // Note: A lot of scaleI, scaleV calls.
+        let lines = line()
+            .x(d => scaleI(d[0]))
+            .y(d => safeScaleV(d[1][1]));
+        // These can be truncated .defined(d => scaleI(d[0]) <= (w - _inset.right) && scaleV(d[1][1]) >= _inset.top);
+
+        let areas = area()
+            .x(d => scaleI(d[0]))
+            .y0(d => safeScaleV(d[1][0]) ) // bottom
+            .y1(d => safeScaleV(d[1][1]) ); // top
+
+
+        let uS = psymbol.map(_mapSymbols).map(s => s != null ? symbol().type(s).size(symbolSize) : null);
+        let sym = _data.map((d, i) => i < uS.length ? uS[i] : null).map(d => d !== null ? d : null);
+
+        let elmL = g.select('g.lines');
+
+        let elmG = elmL.selectAll('g.line').data(_data);
+        elmG.exit().remove();
+        let elmGNew = elmG.enter().append('g').attr('class', 'line');
+        elmGNew.append('path').attr('class', 'area').attr('stroke', 'none');
+        elmGNew.append('path').attr('class', 'stroke').attr('fill', 'none');
+        elmGNew.append('g').attr('class', 'symbols');
+        elmG = elmG.merge(elmGNew);
+
+        let elmArea = elmL.selectAll('path.area').data(fdata);
+        let elmStroke = elmL.selectAll('path.stroke').data(sdata);
+
+        // Add the clipping paths to ensure curves do not move outside
+        // the graph area. Do this before the animation
+        elmArea.attr('clip-path', `url(#${cid})`);
+        elmStroke.attr('clip-path', `url(#${cid})`);
+
+        if (transition === true) {
+          elmArea = elmArea.transition(context);
+          elmStroke = elmStroke.transition(context);
+        }
+
+        function revealInterpolation(tr, fn) {
+          return function (d, i) {
+            let ln = fn(i);
+            if (tr == null) tr = 1;
+
+            let interpolate = scaleLinear()
+                .domain([0, 1])
+                .range([tr, d.length + 1]);
+
+            return function(t) {
+              if (d.length == 0) return '';
+
+              let flooredX = Math.floor(interpolate(t));
+
+              let weight = interpolate(t) - flooredX;
+              let interpolatedLine = d.slice(0, flooredX);
+
+              if (flooredX > 0 && flooredX < d.length) {
+                let wY0 = d[flooredX][1][0] * weight + d[flooredX-1][1][0] * (1.0 - weight);
+                let wY1 = d[flooredX][1][1] * weight + d[flooredX-1][1][1] * (1.0 - weight);
+
+                let wX = d[flooredX][0] * weight + d[flooredX-1][0] * (1.0 - weight);
+
+                interpolatedLine.push([ wX, [ wY0, wY1 ] ]);
+              }
+
+              return ln(interpolatedLine);
+            }
+          }
+        }
+
+        function valueInterpolation(tr, fn) {
+          return function (d, i) {
+            let ln = fn(i);
+
+            return function(t) {
+              let flooredX = d.length - 1;
+              if (flooredX < 0) return '';
+
+              let interpolatedLine = d.slice(0, flooredX);
+
+              let wY0 = d[flooredX][1][0] * t;
+              let wY1 = d[flooredX][1][1] * t;
+
+              interpolatedLine.push([ d[flooredX][0], [ wY0, wY1 ] ]);
+
+              return ln(interpolatedLine);
+            }
+          }
+        }
+
+
+        elmArea.attr('opacity', _fillOpacity)
+            .attr('fill', (d,i) => colors(d, i, 'area'));
+
+        elmStroke.attr('stroke', (d,i) => colors(d, i, 'stroke'));
+
+        let interpolation = null;
+        if (transition === true) {
+          if (animation === 'reveal') {
+            interpolation = revealInterpolation;
+          } else if (animation === 'value') {
+            interpolation = valueInterpolation;
+          }
+        }
+
+        if (interpolation !== null) {
+          elmArea.attrTween('d', interpolation(_ptrim, i => _curve[i] != null ? areas.curve(_curve[i]) : areas));
+          elmStroke.attrTween('d', interpolation(_ptrim, i => _curve[i] != null ? lines.curve(_curve[i]) : lines));
+        } else {
+          elmArea.attr('d', (d, i) => _curve[i] != null ? areas.curve(_curve[i])(d, i) : areas(d, i));
+          elmStroke.attr('d', (d, i) => _curve[i] != null ? lines.curve(_curve[i])(d, i) : lines(d, i));
+        }
+
+        let eS = elmG.select('g.symbols').selectAll('path').data((d, i) => sym[i] != null ? d.map(function (v) { return { v : v, i : i }; }) : []);
+        eS.exit().remove();
+        eS = eS.enter().append('path').merge(eS);
+        eS.attr('transform', d => 'translate('+scaleI(d.v[0])+','+safeScaleV(d.v[1][1])+')')
+            .attr('d', (d) => sym[d.i](d.v, d.i))
+            .attr('fill', d => colors(d.v, d.i, 'symbol'))
+            .attr('stroke', 'none');
+
+        let flat = _data.reduce((p, a, s) => p.concat(a.map((e, i) => [ e[0], e[1][1], s, i, (e[1][1] - e[1][0])] )), []);
+        let overlay = voronoi()
+            .x(d => scaleI(d[0]))
+            .y(d => safeScaleV(d[1]))
+            .extent([ [ _inset.left, _inset.top ], [ w - _inset.right, h - _inset.bottom ] ])
+            .polygons(flat);
+
+        let vmesh = g.select('g.voronoi').selectAll('path').data(overlay);
+        vmesh.exit().remove();
+        vmesh = vmesh.enter().append('path')
+            .attr('fill', 'none')
+            .attr('pointer-events', 'all')
+            .merge(vmesh);
+
+        vmesh.attr('d', d => d != null ? 'M' + d.join('L') + 'Z' : '')
+            .attr('class', d => d != null ? 'series-' + d.data[2] : null);
+
+        let _tipHtml = tipHtml;
+
+        let fmtX = (v) => v;
+
+        if (labelTime != null) {
+          if (typeof labelTime === 'function') {
+            fmtX = labelTime
+          } else if (labelTime === 'multi') {
+            let tf = timeFormatLocale(localeTime).format;
+
+            fmtX = timeMultiFormat({ localtime: false } , tf);
+          } else if (labelTime === 'multi-local') {
+            let tf = timeFormatLocale(localeTime).format;
+            //TODO: Temp fix related to https://github.com/redsift/d3-rs-lines/issues/6
+            // needs a refactor to properly support time zones
+            fmtX = timeMultiFormat({ localtime: false } , tf);
+          } else {
+            let tf = timeFormatLocale(localeTime);
+
+            fmtX = tf.format(labelTime);
+          }
+        } else if (typeof tickFormatIndex === 'function') {
+          fmtX = tickFormatIndex;
+        } else if (tickFormatIndex != null) {
+          fmtX = formatLocale(localeFormat).format(tickFormatIndex);
+        }
+
+        let fmtY = null;
+
+        if (formatValue != null) {
+          if (typeof formatValue === 'function') {
+            fmtY = formatValue;
+          } else {
+            fmtY = formatLocale(localeFormat).format(formatValue);
+          }
+        }
+        if (_tipHtml == null) {
+
+
+          _tipHtml = function (d,i,s) {
+            let v = value(d);
+            let x = v[0];
+            let y = 0;
+            if (stacked === true) {
+              y = (s === -1) ? 0 : v[1][s];
+
+            } else {
+              y = v[1];
+            }
+
+            if (fmtX != null) {
+              x = fmtX(x);
+            }
+
+            if (fmtY != null && logValue === 0) {
+              y = fmtY(y);
+            }
+
+            return x + ', ' + y;
+          }
+        }
+
+        // Tip
+        let _style = style;
+        if (_style === undefined) {
+          // build a style sheet from the embedded charts
+          _style = [ _impl, lchart, rtip ].filter(c => c != null).reduce((p, c) => p + c.defaultStyle(theme, w), '');
+        }
+
+        rtip.html(_tipHtml);
+        elmS.call(rtip);
+
+        let defsEl = snode.select('defs');
+        if (defsEl.empty()) {
+          defsEl = snode.append('defs');
+        }
+
+        let styleEl = defsEl.selectAll('style' + (id ?  '#style-lines-' + id : '.style-' + classed)).data(_style ? [ _style ] : []);
+        styleEl.exit().remove();
+        styleEl = styleEl.enter()
+            .append('style')
+            .attr('type', 'text/css')
+            .attr('id', (id ?  'style-lines-' + id : null))
+            .attr('class', (id ?  null : 'style-' + classed))
+            .merge(styleEl);
+        styleEl.text(s => s);
+
+        vmesh.on('click', function (d) {
+          let s = d.data[2];
+          let i = d.data[3];
+
+          let item = _data[s][i];
+
+          if (stacked === true) {
+            // Quick hack to ignore empty series by scanning downward
+            while (item == null || (item[1][1] - item[1][0] === 0)) {
+              s = s - 1;
+              if (s < 0) break;
+              item = _data[s][i];
+            }
+          }
+
+          let nested = item[1].data;
+
+          if (nested !== undefined) {
+            item = nested;
+          }
+        });
+
+        vmesh.on('mouseover', function (d) {
+          let s = d.data[2];
+          let i = d.data[3];
+
+          let item = _data[s][i];
+
+          let y = 0;
+
+          if (stacked === true) {
+            // Quick hack to ignore empty series by scanning downward
+            while (item == null || (item[1][1] - item[1][0] === 0)) {
+              s = s - 1;
+              if (s < 0) break;
+              item = _data[s][i];
+            }
+            y = safeScaleV(item[1][1]);
+          } else {
+            item = [ d.data[0], d.data[1] ];
+            y = safeScaleV(item[1]);
+          }
+
+
+          let x = scaleI(item[0]);
+
+          let nested = item[1].data;
+
+          if (nested !== undefined) {
+            item = nested;
+          }
+
+          g.append('circle')
+              .attr('r', DEFAULT_TIP_CIRCLE_SIZE)
+              .attr('class', 'tip outline')
+              .attr('cx', x)
+              .attr('cy', y)
+              .attr('pointer-events', 'none')
+              .attr('fill', display[theme].axis);
+
+          let circle = g.append('circle')
+              .attr('r', DEFAULT_TIP_CIRCLE_SIZE - widths.outline)
+              .attr('class', 'tip fill')
+              .attr('cx', x)
+              .attr('cy', y)
+              .attr('pointer-events', 'none')
+              .attr('fill', colors(item, s));
+
+          rtip.show.apply(circle.node(), [ item, i, s ]);
+        });
+
+        elmS.on('mouseout', function () {
+          g.selectAll('circle.tip').remove();
+          rtip.hide.apply(this);
+        });
+        rtip.hide();
+
+        let labels = [];
+
+        if (legendOrientation === 'voronoi') {
+          const centerI = (scaleI.range()[1] - scaleI.range()[0]) / 2;
+          const UNIT_TO_RAD = Math.PI / 2;
+
+          let calculatePolygon = function(d, i) {
+            let c = polygonCentroid(d);
+            // the more central (in x), the more suitable
+            let centraility = Math.cos(UNIT_TO_RAD * Math.abs(centerI - c[0]) / centerI);
+            // a: larger number, more suitable polygon
+            return { a: polygonArea(d) * centraility, s: d.data[2], i: i, c: c };
+          }
+
+          // will drag the text position towards the data point by a funciton of
+          // voronoiAttraction
+          let calculateTextPosition = function(centroid, point) {
+            let angle = Math.atan2(centroid[1] - point[1], centroid[0] - point[0]);
+
+            let x = centroid[0] - point[0];
+            let y = centroid[1] - point[1];
+
+            let l = Math.sqrt(x*x + y*y);
+
+            return [ centroid[0] - voronoiAttraction*l*Math.cos(angle), centroid[1] - voronoiAttraction*l*Math.sin(angle) ];
+          }
+
+          let polys = overlay.map(calculatePolygon);
+
+          let candidates = nest()
+              .key(d => d != null ? d.s : '')
+              .sortValues((a,b) => descending(a.a, b.a))
+              .entries(polys)
+              .filter(d => d.key !== '')
+              .map(function (d) {
+                for (let i=0; i < d.values.length; i++) {
+                  let e = d.values[i];
+                  if (e != null) return e.i;
+                }
+                // nothing was an option
+                return 0;
+              });
+          labels = candidates.map(i => calculateTextPosition(polys[i].c, [ scaleI(flat[i][0]), safeScaleV(flat[i][1]) ]));
+        }
+
+        let vlabels = g.select('g.voronoi').selectAll('text').data(labels);
+        vlabels.exit().remove();
+        vlabels = vlabels.enter().append('text')
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'central')
             .merge(vlabels);
 
-      if (transition === true && animateLabels === true) {
-        vlabels = vlabels.transition(context);
-      }  
-      
-      vlabels.attr('x', d => d[0])
+        if (transition === true && animateLabels === true) {
+          vlabels = vlabels.transition(context);
+        }
+
+        vlabels.attr('x', d => d[0])
             .attr('y', d => d[1])
             .attr('fill', (d,i) => colors(d,i,'legend'))
-            .attr('font-weight', fonts.variable.weightColor) 
+            .attr('font-weight', fonts.variable.weightColor)
             .text((d, i) => i < legend.length ? legend[i] : '');
-      
-      
-      function _mapHighlights(e) {
-        if (Array.isArray(e)) {
-          return { l: e.map(fmtX).join(','), v: e };  
-        }
-        
-        if (typeof e === 'object') {
-          if (!Array.isArray(e.v)) {
-            return { l: e.l, v: [ e.v ], c: 'supplied' };
-          } else {
-            return { l: e.l, v: e.v, c: 'supplied' };
+
+
+        function _mapHighlights(e) {
+          if (Array.isArray(e)) {
+            return { l: e.map(fmtX).join(','), v: e };
           }
+
+          if (typeof e === 'object') {
+            if (!Array.isArray(e.v)) {
+              return { l: e.l, v: [ e.v ], c: 'supplied' };
+            } else {
+              return { l: e.l, v: e.v, c: 'supplied' };
+            }
+          }
+
+          return { l: fmtX(e), v: [ e ] }
         }
-        
-        return { l: fmtX(e), v: [ e ] }
-      }
-      
-      let _highlightIndex = highlightIndex.map(_mapHighlights);
-      
-      let hIndex = g.select('g.highlight-v').selectAll('rect').data(_highlightIndex);
-      hIndex.exit().remove();
-      hIndex = hIndex.enter().append('rect')            
+
+        let _highlightIndex = highlightIndex.map(_mapHighlights);
+
+        let hIndex = g.select('g.highlight-v').selectAll('rect').data(_highlightIndex);
+        hIndex.exit().remove();
+        hIndex = hIndex.enter().append('rect')
             .merge(hIndex);
 
-      let hLabel = g.select('g.highlight-v').selectAll('text').data(_highlightIndex);
-      hLabel.exit().remove();
-      hLabel = hLabel.enter().append('text')    
-            .attr('dominant-baseline', 'text-after-edge')  
+        let hLabel = g.select('g.highlight-v').selectAll('text').data(_highlightIndex);
+        hLabel.exit().remove();
+        hLabel = hLabel.enter().append('text')
+            .attr('dominant-baseline', 'text-after-edge')
             .merge(hLabel);
 
-      hLabel
-        .attr('text-anchor', 'middle')
-        .attr('class', d => d.c);  
+        hLabel
+            .attr('text-anchor', 'middle')
+            .attr('class', d => d.c);
 
-      if (transition === true) {
-        hIndex = hIndex.transition(context);
-        hLabel = hLabel.transition(context);
-      }
-      
-      hIndex.attr('y', _inset.top)
+        if (transition === true) {
+          hIndex = hIndex.transition(context);
+          hLabel = hLabel.transition(context);
+        }
+
+        hIndex.attr('y', _inset.top)
             .attr('height', h - _inset.bottom - _inset.top)
             .attr('x', d => Math.round(scaleI(d.v[0]) - (pattern.size() / 2)))
             .attr('width', function(d) {
               let sz = 1;
               if (d.v[1] != null) {
-                sz = scaleI(d.v[1]) - scaleI(d.v[0]);                
+                sz = scaleI(d.v[1]) - scaleI(d.v[0]);
               }
-              
+
               return pattern.align(sz);
             })
             .attr('fill', pattern.url());
-      
-      hLabel.attr('x', d => d.v[1] == null ? scaleI(d.v[0]) + DEFAULT_HIGHLIGHT_PADDING : DEFAULT_HIGHLIGHT_PADDING + scaleI(d.v[0]) + (scaleI(d.v[1]) - scaleI(d.v[0]))/2 )
+
+        hLabel.attr('x', d => d.v[1] == null ? scaleI(d.v[0]) + DEFAULT_HIGHLIGHT_PADDING : DEFAULT_HIGHLIGHT_PADDING + scaleI(d.v[0]) + (scaleI(d.v[1]) - scaleI(d.v[0]))/2 )
             .attr('y', _inset.top)
             .text(d => d.l);
 
-      _ptrim = trim;
+        _ptrim = trim;
+      }
+      draw(true);
     });
     
   }
@@ -1328,7 +1342,11 @@ export default function lines(id) {
   };   
   
   _impl.legend = function(value) {
-    return arguments.length ? (legend = _coerceArray(value), _impl) : legend;
+    return arguments.length ? (
+        legend = _coerceArray(value),
+        legendsEnabled = Object.keys(legend).map(i => parseInt(i)),
+        _impl
+    ) : legend;
   }; 
    
   _impl.labelTime = function(value) {
@@ -1446,11 +1464,10 @@ export default function lines(id) {
   _impl.axisDisplayIndex = function(value) {
     return arguments.length ? (axisDisplayIndex = value, _impl) : axisDisplayIndex;
   };      
-  
-  _impl.onClick = function(value) {
-    return arguments.length ? (onClick = value, _impl) : onClick;
-  };   
-  
+
+  _impl.legendIsToggleable = function(value) {
+    return arguments.length ? (legendIsToggleable = value, _impl) : legendIsToggleable;
+  };
                 
   return _impl;
 }
