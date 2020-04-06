@@ -96,7 +96,8 @@ Property|Description|Transition|Preview
 `labelTime` | *String, Function* Interpret the Index value from timestamp and format it using [string specifiers](https://github.com/d3/d3-time-format/blob/master/README.md#locale_format) or the supplied function. `'multi'` (string specifier) smartly displays the time and use the UTC format.| N|[![Preview of labelTime property](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=%5B%7B%22l%22:%201461456000000,%22v%22:%5B%2012,3%5D%7D,%7B%22l%22:1461542400000,%22v%22:%5B%205,11%5D%7D%5D&labelTime=multi&tickCountIndex=3)](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=%5B%7B%22l%22:%201461456000000,%22v%22:%5B%2012,3%5D%7D,%7B%22l%22:1461542400000,%22v%22:%5B%205,11%5D%7D%5D&labelTime=multi&tickCountIndex=3) Examples: [Bricks](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=%5B%7B%22l%22:%201461456000000,%22v%22:%5B%2012,3%5D%7D,%7B%22l%22:1461542400000,%22v%22:%5B%205,11%5D%7D%5D&labelTime=multi&tickCountIndex=3) / [CodePen](http://codepen.io/geervesh/pen/GqYdoo)
 `language` | *String* Change the language format of the chart affecting digit, currency and time formats. |N | Examples: [Bricks](https://bricks.redsift.cloud/reusable/d3-rs-lines.svg?_datum=[30,40,100,70,50]&tickFormatValue=($.1s&language=fr))/ [CodePen](http://codepen.io/geervesh/pen/vXywyJ)
 `onClick`|*Function*  Handler for a click event on a data series. |N | Examples: [CodePen](http://codepen.io/geervesh/pen/NRrEkq)
-
+`legendIsToggleable`|*Boolean* If true, the legend's items will have a checkbox that make it able to switch on/off data sets.|N
+`tintColor`|*String* Color of some components, only supports checkbox color for now|N
 ### Time
 
 The two main time formatter available in UTC or Local Time. UTC uses the time standard applied across the world which is unaffected by Daylight Saving Time whereas Local Time is set to your local timezone. 
