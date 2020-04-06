@@ -57,7 +57,6 @@ import {
 
 import { 
   curveBasis,
-//curveBundle,
   curveCardinal,
   curveCatmullRom,
   curveMonotoneX,
@@ -527,7 +526,12 @@ export default function lines(id) {
       }
 
       function draw(initialDrawing) {
-        let _data = data.map(item => ({...item, v: item.v.map((v, idx) => legendsEnabled.includes(idx) ? v : null)}));
+        let _data = data.map(item => Object.assign(
+              {},
+              item,
+              {v: item.v.map((v, idx) => legendsEnabled.includes(idx) ? v : null)}
+            )
+        );
         if (_data.length > 0) {
           if (stacked !== null && stacked !== false) {
             let stacker = stack();
