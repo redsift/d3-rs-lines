@@ -307,6 +307,7 @@ export default function lines(id) {
       legend = [ ],
       legendsEnabled = [ ],
       legendIsToggleable = false,
+      tintColor = '#000',
       fill = null,
       labelTime = null,
       curve = curveCatmullRom.alpha(0),
@@ -626,6 +627,7 @@ export default function lines(id) {
                 legendsEnabled = enabledLegendItems;
                 draw(false);
               })
+              .tintColor(tintColor)
           ;
 
           if (initialDrawing) _inset = lchart.childInset(_inset);
@@ -1472,6 +1474,10 @@ export default function lines(id) {
   _impl.legendIsToggleable = function(value) {
     return arguments.length ? (legendIsToggleable = value, _impl) : legendIsToggleable;
   };
-                
+
+  _impl.tintColor = function(value) {
+    return arguments.length ? (tintColor = value, _impl) : tintColor;
+  }
+
   return _impl;
 }
