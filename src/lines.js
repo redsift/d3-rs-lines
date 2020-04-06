@@ -307,6 +307,7 @@ export default function lines(id) {
       legend = [ ],
       legendsEnabled = [ ],
       legendIsToggleable = false,
+      legendSize = 14, // default legend size (from d3-rs-legends)
       tintColor = '#000',
       fill = null,
       labelTime = null,
@@ -622,6 +623,7 @@ export default function lines(id) {
               .fill(colors)
               .theme(theme)
               .orientation(legendOrientation)
+              .legendSize(legendSize)
               .toggleable(legendIsToggleable)
               .onEnabledLegendItemsChange(enabledLegendItems => {
                 legendsEnabled = enabledLegendItems;
@@ -1469,7 +1471,11 @@ export default function lines(id) {
 
   _impl.axisDisplayIndex = function(value) {
     return arguments.length ? (axisDisplayIndex = value, _impl) : axisDisplayIndex;
-  };      
+  };
+
+  _impl.legendSize = function(value) {
+    return arguments.length ? (legendSize = value, _impl) : legendSize;
+  };
 
   _impl.legendIsToggleable = function(value) {
     return arguments.length ? (legendIsToggleable = value, _impl) : legendIsToggleable;
