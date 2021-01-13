@@ -530,7 +530,7 @@ export default function lines(id) {
       let _data = data.map(item => Object.assign(
             {},
             item,
-            {v: item.v.map((v, idx) => legendsEnabled.includes(idx) ? v : null)}
+            {v: item.v.map((v, idx) => !legend.length || legendsEnabled.includes(idx) ? v : null)}
           )
       );
       if (_data.length > 0) {
@@ -1031,9 +1031,9 @@ export default function lines(id) {
 
         let x = scaleI(item[0]);
 
-        let nested = item[1].data;
+        let nested = item[1] !== null ? item[1].data : null;
 
-        if (nested !== undefined) {
+        if (nested !== undefined && nested !== null) {
           item = nested;
         }
 
