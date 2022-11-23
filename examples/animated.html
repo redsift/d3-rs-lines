@@ -450,7 +450,8 @@
                           .stacked(true) // boolean or array of object keys
                           .curve('curveStep')
                           .tipHtml((d,i) => 'HELLO')
-                          .tickFormatValue('($.0f');
+                          .tickFormatValue('($.0f')
+                          .legendIsToggleable(true);
                           
     let i = 3;                  
     let animate = d3.select('#elm')
