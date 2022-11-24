@@ -20,15 +20,15 @@ tape("html() empty state", function(t) {
 tape("html() 1 line state", function(t) {
     var host = lines.html();
     var el = d3.select('#test');
-    el.datum([ 1, 2 ]).call(host);
+    el.datum([{l: 1, v:[1, 2]}]).call(host);
     
     t.equal(el.selectAll('svg').size(), 1);
     
     var node = el.select(host.self());
         
     // In this chart, one path should be there
-    t.equal(node.selectAll('path.stroke').size(), 1);
-    t.equal(node.selectAll('path.area').size(), 1);
+    t.equal(node.selectAll('path.stroke').size(), 2);
+    t.equal(node.selectAll('path.area').size(), 2);
         
     t.end();
 });
@@ -37,7 +37,7 @@ tape("html() 1 line state", function(t) {
 tape("html() 2 line state", function(t) {
     var host = lines.html();
     var el = d3.select('#test');
-    el.datum([ [ 0, 1 ], [ 1,  2 ] ]).call(host);
+    el.datum([ {l: 1, v:[ 0, 1 ]}, {l: 2, v:[ 1,  2 ]} ]).call(host);
     
     t.equal(el.selectAll('svg').size(), 1);
     
@@ -47,7 +47,7 @@ tape("html() 2 line state", function(t) {
     t.equal(node.selectAll('path.stroke').size(), 2);
     t.equal(node.selectAll('path.area').size(), 2);
 
-    t.equal(node.selectAll('.voronoi path.series-0').size(), 2);
+    t.equal(node.selectAll('.voronoi path.series-0').size(), 0);
     t.equal(node.selectAll('.voronoi path.series-1').size(), 2);
             
     t.end();
@@ -56,7 +56,7 @@ tape("html() 2 line state", function(t) {
 [ null, 'top', 'left' , 'right', 'bottom', 'voronoi' ].forEach(function (o) {
 
     tape("html() data reentrant", function(t) {
-        var data = [ [ 0, 1 ], [ 1,  2 ] ];
+        var data = [ {v:[ 0, 1 ]}, {v:[ 1,  2 ]} ];
         
         var host = lines.html();
         if (o != null) {
@@ -83,14 +83,14 @@ tape("html() voronoi updates", function(t) {
     var host = lines.html().legendOrientation('voronoi');
 
     var el = d3.select('#test');
-    el.datum([ [ 0, 1 ], [ 1,  2 ] ]).call(host);
+    el.datum([ {v:[ 0, 1 ]}, {v:[ 1,  2 ]} ]).call(host);
     
     t.equal(el.selectAll('svg').size(), 1);
     
     t.equal(el.selectAll('.voronoi path').size(), 4, '4 voronoi polygons');
-    t.equal(el.selectAll('.voronoi text').size(), 2, '2 text labels');
+    t.equal(el.selectAll('.voronoi text').size(), 1, '1 text labels');
     
-    el.datum([ [ 0, 1 ] ]).call(host);
+    el.datum([ {v: [ 0, 1 ]} ]).call(host);
     
     t.equal(el.selectAll('.voronoi path').size(), 2, '2 voronoi polygons');
     t.equal(el.selectAll('.voronoi text').size(), 1, '1 text label');
