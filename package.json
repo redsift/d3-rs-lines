@@ -1,6 +1,6 @@
 {
   "name": "@redsift/d3-rs-lines",
-  "version": "0.4.6",
+  "version": "0.5.0",
   "description": "Generates line charts using D3v4.",
   "keywords": [
     "line",
@@ -23,18 +23,19 @@
   },
   "scripts": {
     "serve": "gulp -o d3-rs-lines -g d3-selection serve",
-    "build": "gulp -o d3-rs-lines -g d3-selection build",
+    "prepublish": "npm run clean; npm run build",
+    "build": "npm run clean; node ./node_modules/@redsift/rollup-bundler/src/index.js bundle.config.js",
+    "clean": "rm -rf dist",
     "pretest": "npm outdated || true && npm run build",
     "test": "tape 'test/**/*-test.js'",
-    "posttest": "eslint index.js src",
-    "prepublish": "npm run build"
+    "posttest": "eslint index.js src"
   },
   "dependencies": {
-    "@redsift/d3-rs-intl": "~0.1.0",
-    "@redsift/d3-rs-legends": "~0.2.5",
-    "@redsift/d3-rs-svg": "~0.4.0",
-    "@redsift/d3-rs-theme": "~0.4.2",
-    "@redsift/d3-rs-tip": "~0.6.0",
+    "@redsift/d3-rs-intl": "0.3.0",
+    "@redsift/d3-rs-legends": "0.4.0",
+    "@redsift/d3-rs-svg": "0.7.0",
+    "@redsift/d3-rs-theme": "0.6.0",
+    "@redsift/d3-rs-tip": "0.10.0",
     "d3-array": "^1.0.1",
     "d3-axis": "^1.0.3",
     "d3-format": "^1.0.2",
@@ -47,7 +48,8 @@
     "d3-voronoi": "^1.0.2"
   },
   "devDependencies": {
-    "@redsift/tape-reel": "~0.1.0",
+    "@redsift/rollup-bundler": "^2.0.2",
+    "@redsift/tape-reel": "~0.1.1",
     "browser-sync": "^2.14.0",
     "del": "^2.2.2",
     "eslint": "^3.3.1",
@@ -55,14 +57,14 @@
     "gulp-rename": "^1.4.0",
     "gulp-sourcemaps": "^2.0.0-alpha",
     "gulp-uglify": "^3.0.2",
-    "rollup": "^0.41.4",
-    "rollup-plugin-node-resolve": "^2.0.0",
-    "rollup-plugin-commonjs": "^7.0.0",
-    "rollup-plugin-buble": "^0.19.8",
-    "rollup-plugin-json": "^2.3.1",
-    "rollup-stream": "^1.23.0",
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0",
     "yargs": "^5.0.0"
+  },
+  "overrides": {
+    "lodash": "4.17.21",
+    "lodash.template": "4.5.0",
+    "chokidar": "3.5.3",
+    "glob-parent": "6.0.2"
   }
 }
