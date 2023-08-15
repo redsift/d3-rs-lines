@@ -1,10 +1,10 @@
 export {
   version
-} from "./package.json";
+} from "../package.json";
 
 
 export {
   default as html,
   intervals as timeIntervals,
   timeMultiFormat as timeMultiFormat
-} from "./src/lines";
+} from "./lines";

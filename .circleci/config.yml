@@ -1,51 +1,25 @@
-defaults:
-  setup: &setup
-    shell: /bin/bash
-    environment:
-      NAME: d3-rs-lines
-    docker:
-      - image: quay.io/redsift/nodeos:latest
-
 version: 2.1
-commands:
-  buildmodule:
-    description: "Build and test NPM module"
-    steps:
-      - checkout
-      - run: npm i
-      - run: npm test
-      - store_artifacts:
-          path: distribution
-  publishmodule:
-    description: "Publishing to NPM"
-    steps:
-      - run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-      - run: npm publish --access=public
 
 jobs:
   build:
-    <<: *setup
+    docker:
+      - image: cimg/node:16.20.2-browsers
     steps:
-      - buildmodule
-
-  build_publish:
-    <<: *setup
-    steps:
-      - buildmodule
-      - publishmodule
+      - checkout
+      - run: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+      - run: npm ci
+      - run: npm run test
+      - run:
+          command: |
+            b=(${CIRCLE_BRANCH/-/ })
+            if [ $b == "release" ]; then
+              echo "Publishing to NPM"
+              npm publish --access=public
+            fi
 
 workflows:
-  version: 2.1
+  version: 2
   build-and-deploy:
     jobs:
       - build:
-          filters:
-            tags:
-              ignore: /^v.*/
-      - build_publish:
           context: org-global
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
